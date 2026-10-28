@@ -1,0 +1,10 @@
+{
+  "case_id": "eval_case_3",
+  "complaint": {"text": "charging cut out", "received_at": "2026-10-21T20:42:00+03:00"},
+  "session_log": [
+    {"ts": "2026-10-21T20:31:02+03:00", "type": "StartTransaction", "connector_id": 1, "meter_wh": 0},
+    {"ts": "2026-10-21T20:33:41+03:00", "type": "StopTransaction", "connector_id": 1, "meter_wh": 1200}
+  ],
+  "payment": {"method": "mobile_money", "currency": "KES", "held": 1000, "captured": 1000, "status": "captured"},
+  "tariff_kes_per_kwh": 25
+}

@@ -1,1 +1,28 @@
-{}
+{
+  "_note": "The human must verify each entry against the OCPP 1.6 specification.",
+  "GroundFailure": {
+    "side_hint": "charger",
+    "clause_id": "OCPP16-ERR-GroundFailure",
+    "hazard": true
+  },
+  "OverCurrentFailure": {
+    "side_hint": "charger",
+    "clause_id": "OCPP16-ERR-OverCurrentFailure",
+    "hazard": true
+  },
+  "HighTemperature": {
+    "side_hint": "charger",
+    "clause_id": "OCPP16-ERR-HighTemperature",
+    "hazard": true
+  },
+  "ConnectorLockFailure": {
+    "side_hint": "charger",
+    "clause_id": "OCPP16-ERR-ConnectorLockFailure",
+    "hazard": false
+  },
+  "EVCommunicationError": {
+    "side_hint": "vehicle",
+    "clause_id": "OCPP16-ERR-EVCommunicationError",
+    "hazard": false
+  }
+}

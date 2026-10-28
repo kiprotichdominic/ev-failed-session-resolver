@@ -1,0 +1,12 @@
+{
+  "OCPP16-ERR-GroundFailure": {
+    "title": "Ground failure fault",
+    "text": "A ground failure is a current leak to earth. The charger stops and the connector stays locked until a technician clears it.",
+    "source": "test-fixture"
+  },
+  "POL-REFUND-1": {
+    "title": "Refund policy",
+    "text": "A driver can request a refund after a failed charge.",
+    "source": "test-fixture"
+  }
+}
