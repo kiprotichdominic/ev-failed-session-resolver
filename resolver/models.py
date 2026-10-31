@@ -57,7 +57,7 @@ class Case(StrictModel):
 
 Side = Literal["charger", "network", "vehicle", "driver", "payment", "unknown"]
 EvidenceSource = Literal["log", "complaint", "payment", "reference"]
-Language = Literal["en", "sw", "sheng"]
+Language = Literal["en", "sw", "sheng", "fr", "de", "it", "zh", "pt"]
 
 
 class Evidence(StrictModel):

@@ -11,5 +11,7 @@ TODO — copy the video script from the TRD (redacted as needed).
 
 ## Case order
 
-TODO — exact eval case order used in the demo, with one line each on what
-the case shows.
+1. C-014 — charger fault (GroundFailure): clean diagnosis, 970 KES refund
+   draft, approve flow.
+2. C-021 — payment pending, session never started: forced escalation, no
+   draft, review reasons instead of approving.

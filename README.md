@@ -18,27 +18,47 @@ money.
 > Still human-owned: eval cases/labels, corpus summaries, browser check,
 > and all commits.
 
-## How to run
+## How to run and test
 
-Without an API key (code-only path; always works):
+Prereqs: Python 3.11+ and Node 18+.
 
 ```sh
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-pytest tests/ -q
-python eval/run_eval.py --split dev --runs 3 --client fake  # TODO: needs eval cases + labels
-.venv/bin/python -m uvicorn api:app --port 8000   # terminal 1: API
-cd web && npm run dev                             # terminal 2: UI on :3000
+(cd web && npm install)
+.venv/bin/python -m pytest -q   # expect all green
+./start-dev.sh                  # API on :8000, UI on :3000
 ```
 
-With an API key (model-backed explanations):
+Open http://localhost:3000. No API key needed: the default `fake`
+client uses canned replies and the UI banners it. For live model output,
+`cp .env.example .env`, set `META_API_KEY` and `RESOLVER_CLIENT=meta`,
+and restart. `.env` is gitignored. Never commit keys.
+
+Tester walkthrough (about 5 minutes):
+
+1. Cases: pick C-014 and press Resolve, or paste case JSON under
+   "Analyse pasted JSON" (no file needed).
+2. Read the verdict strip: side, confidence, escalation status, refund draft.
+3. Left pane shows the complaint and session log (cited rows highlighted);
+   right pane shows the diagnosis. Click an evidence ref to jump to its row.
+4. No escalation: write a decision note, press Approve, see the recorded
+   decision. Escalated (try C-021): there is no Approve button — review the
+   reasons instead.
+5. Audit: every run lands here with its raw model output; filter by decision.
+6. Evaluation: compare model vs code-only baseline once `eval/results.json`
+   exists (commands below).
+
+If no cases exist yet, the Cases page shows a sample case with a copy
+button — save it as `eval/cases/C-014.json`, add its label row to
+`eval/labels.json` (both human-written), and refresh.
+
+Eval harness (needs the human-written cases and labels):
 
 ```sh
-cp .env.example .env               # then set META_API_KEY, META_MODEL, META_BASE_URL
-# TODO: model-backed path lands with Session 7; UI runs on canned replies
+.venv/bin/python eval/run_eval.py --split dev --runs 3 --client fake
+.venv/bin/python eval/baseline.py --split dev --runs 3
 ```
-
-`.env` is gitignored. Never commit keys.
 
 ## Built during the event vs third-party
 
@@ -69,8 +89,8 @@ Full method, rerun instructions, and every failed case:
 - No production hardening: no auth, no rate limits, file-backed SQLite audit.
 - Model explanations are unverified beyond the eval set; every refund draft
   requires human approval and hazard cases always need a technician.
-- Meta client unimplemented (Session 7 blocked on API docs); only the fake
-  client and code-only baseline run today.
+- Live model output needs `META_API_KEY`; without it the UI runs on canned
+  replies (clearly bannered) and the code-only baseline still runs.
 
 ## Docs
 

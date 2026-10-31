@@ -190,3 +190,9 @@ def test_system_prompt_markers():
     assert "{{owed_kes}}" in SYSTEM_PROMPT
     assert "{{refund_kes}}" in SYSTEM_PROMPT
     assert "Return JSON only, matching the schema. No markdown and no commentary." in SYSTEM_PROMPT
+
+
+def test_non_trio_language_accepted():
+    reply = _reply_json(driver_message={"language": "it",
+                                        "text": "Sessione {{energy_kwh}} kWh."})
+    assert parse_and_validate(reply).driver_message.language == "it"

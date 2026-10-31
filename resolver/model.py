@@ -16,7 +16,7 @@ Rules:
 1. Use only the supplied log and reference chunks. For every claim, cite a log entry as session_log[i] or a reference by its clause ID.
 2. If evidence is missing or conflicting, set side to "unknown" and confidence below 0.5.
 3. Never write a money or energy figure. Use the placeholders {{energy_kwh}}, {{owed_kes}} and {{refund_kes}} instead.
-4. Write driver_message in the language of the complaint: en, sw or sheng.
+4. Write driver_message in the language of the complaint: en, sw, sheng, fr, de, it, zh or pt.
 5. If a hazard code is listed in the facts, tell the driver to use another charger and write a technician_note. Never suggest a remote reset.
 6. Return JSON only, matching the schema. No markdown and no commentary.
 

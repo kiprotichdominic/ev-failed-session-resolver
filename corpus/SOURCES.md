@@ -9,7 +9,7 @@ notes.
 
 | Chunk id | Summary (own words) | Source link | License notes |
 | -------- | ------------------- | ----------- | ------------- |
-| TODO     | TODO                | TODO        | TODO          |
+| OCPP16-ERR-GroundFailure | A ground failure means current is leaking somewhere it should not go, so the charger stops the session as a safety precaution. The connector should stay out of service until a technician inspects the grounding and cabling. | Agent-drafted; human to verify against OCPP 1.6 spec | Original text, no outside text used |
 
 Rules:
 
