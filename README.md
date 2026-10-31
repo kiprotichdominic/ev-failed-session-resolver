@@ -1,5 +1,7 @@
 # Failed-Session Resolver
 
+Built for the Meta hackathon.
+
 All data in this demo is synthetic.
 
 30-second pitch: when an EV charging session fails, drivers and support agents get
