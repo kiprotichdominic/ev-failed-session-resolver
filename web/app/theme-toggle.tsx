@@ -1,43 +1,88 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FiMonitor, FiMoon, FiSun } from "react-icons/fi";
+
+type Choice = "dark" | "light" | "system";
+
+const OPTIONS: { id: Choice; label: string; icon: typeof FiMoon }[] = [
+  { id: "dark", label: "Dark theme", icon: FiMoon },
+  { id: "light", label: "Light theme", icon: FiSun },
+  { id: "system", label: "System theme", icon: FiMonitor },
+];
+
+function apply(choice: Choice): void {
+  const light =
+    choice === "light" ||
+    (choice === "system" &&
+      window.matchMedia("(prefers-color-scheme: light)").matches);
+  if (light) {
+    document.documentElement.setAttribute("data-theme", "light");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", light ? "#ffffff" : "#0c0c09");
+}
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [choice, setChoice] = useState<Choice>("dark");
 
   useEffect(() => {
-    setTheme(
-      document.documentElement.getAttribute("data-theme") === "light"
-        ? "light"
-        : "dark",
-    );
+    const stored = localStorage.getItem("theme");
+    const initial: Choice =
+      stored === "light" || stored === "system" ? stored : "dark";
+    setChoice(initial);
+    apply(initial);
   }, []);
 
-  function toggle() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    if (next === "light") {
-      document.documentElement.setAttribute("data-theme", "light");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
+  useEffect(() => {
+    if (choice !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => apply("system");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [choice]);
+
+  function pick(next: Choice) {
+    setChoice(next);
+    apply(next);
     try {
       localStorage.setItem("theme", next);
     } catch {
-      /* storage unavailable (e.g. private mode): theme just won't persist */
+      /* storage unavailable: theme just won't persist */
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={
-        theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-      }
-      className="rounded border border-line-strong px-2 py-0.5 text-sm text-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1"
+    <div
+      role="radiogroup"
+      aria-label="Color theme"
+      className="flex rounded border border-line-strong"
     >
-      {theme === "dark" ? "Light mode" : "Dark mode"}
-    </button>
+      {OPTIONS.map((o) => {
+        const Icon = o.icon;
+        const selected = choice === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={o.label}
+            title={o.label}
+            onClick={() => pick(o.id)}
+            className={`p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 ${
+              selected
+                ? "rounded bg-ink text-canvas"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            <Icon size={16} aria-hidden="true" />
+          </button>
+        );
+      })}
+    </div>
   );
 }

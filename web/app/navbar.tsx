@@ -20,7 +20,7 @@ export function NavbarFallback() {
     <header className="sticky top-0 z-10 border-b border-line bg-canvas">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3">
         <Link href="/" className="text-sm font-semibold tracking-tight">
-          Failed-Session Resolver
+          EV-Failed-Session Resolver
         </Link>
         <NavLinks />
         <div className="ml-auto">
@@ -37,7 +37,7 @@ export default async function Navbar() {
     <header className="sticky top-0 z-10 border-b border-line bg-canvas">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3">
         <Link href="/" className="text-sm font-semibold tracking-tight">
-          Failed-Session Resolver
+          EV-Failed-Session Resolver
         </Link>
         <NavLinks />
         <div className="ml-auto flex items-center gap-4">

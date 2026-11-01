@@ -51,7 +51,7 @@ def make_client(case: Case):
     reply = build_model_output(case).model_dump_json()
     return FakeModelClient([reply])
 
-app = FastAPI(title="Failed-Session Resolver")
+app = FastAPI(title="EV-Failed-Session Resolver")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],

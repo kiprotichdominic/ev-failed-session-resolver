@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import CopyButton from "./copy-button";
 import StatusDot from "./status-dot";
 
@@ -150,7 +151,15 @@ function scrollToId(id: string, block: ScrollLogicalPosition = "start") {
     ?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block });
 }
 
-function LogEvidenceRef({ itemRef, logLength }: { itemRef: string; logLength: number }) {
+function LogEvidenceRef({
+  itemRef,
+  logLength,
+  onNavigate,
+}: {
+  itemRef: string;
+  logLength: number;
+  onNavigate: () => void;
+}) {
   const i = parseLogRef(itemRef);
   if (i === null || i >= logLength) {
     return (
@@ -165,8 +174,11 @@ function LogEvidenceRef({ itemRef, logLength }: { itemRef: string; logLength: nu
   return (
     <button
       className="underline focus-visible:outline-2 focus-visible:outline-offset-1"
-      onClick={() => scrollToId(`log-${i}`, "center")}
-      title={`Scroll to log row ${i}`}
+      onClick={() => {
+        onNavigate();
+        setTimeout(() => scrollToId(`log-${i}`, "center"), 100);
+      }}
+      title={`Show log row ${i}`}
     >
       {itemRef}
     </button>
@@ -244,6 +256,14 @@ const STAGES = [
   "Verifying citations and escalation rules",
 ];
 
+const TABS = [
+  { id: "samples", label: "Sample cases" },
+  { id: "analyse", label: "Analyse pasted JSON" },
+  { id: "build", label: "Build a custom sample" },
+] as const;
+
+type ToolTab = (typeof TABS)[number]["id"];
+
 export default function CasesPage() {
   const [cases, setCases] = useState<string[]>([]);
   const [selected, setSelected] = useState("");
@@ -257,9 +277,11 @@ export default function CasesPage() {
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [showBusy, setShowBusy] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [sample, setSample] = useState("C-014");
   const [pasted, setPasted] = useState("");
-  const [analyserOpen, setAnalyserOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ToolTab>("samples");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [genScenario, setGenScenario] = useState<"fault" | "never">("fault");
   const [genFault, setGenFault] = useState("GroundFailure");
   const [genEnergy, setGenEnergy] = useState(4);
@@ -297,6 +319,19 @@ export default function CasesPage() {
     };
   }, [busy]);
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
+
   function selectCase(id: string) {
     setSelected(id);
     setDetail(null);
@@ -321,7 +356,7 @@ export default function CasesPage() {
       if (!raw.ok || !res.ok) throw new Error("resolve failed");
       setDetail(await raw.json());
       setResult(await res.json());
-      requestAnimationFrame(() => scrollToId("diagnosis"));
+      setDrawerOpen(true);
     } catch {
       setError("Could not resolve case. Is the API running?");
     } finally {
@@ -397,7 +432,7 @@ export default function CasesPage() {
         session_log: p.session_log as CaseFile["session_log"],
       });
       setResult(await r.json());
-      requestAnimationFrame(() => scrollToId("diagnosis"));
+      setDrawerOpen(true);
     } catch {
       setError("Could not analyse pasted case. Is the API running?");
     } finally {
@@ -505,6 +540,25 @@ export default function CasesPage() {
     refund_kes: genRefund,
   })}`;
 
+  function focusTab(id: ToolTab) {
+    const i = TABS.findIndex((t) => t.id === id);
+    tabRefs.current[i]?.focus();
+  }
+
+  function onTabKeyDown(e: ReactKeyboardEvent) {
+    const ids = TABS.map((t) => t.id);
+    const i = ids.indexOf(activeTab);
+    let n: number | null = null;
+    if (e.key === "ArrowRight") n = (i + 1) % ids.length;
+    else if (e.key === "ArrowLeft") n = (i - 1 + ids.length) % ids.length;
+    else if (e.key === "Home") n = 0;
+    else if (e.key === "End") n = ids.length - 1;
+    if (n === null) return;
+    e.preventDefault();
+    setActiveTab(ids[n]);
+    tabRefs.current[n]?.focus();
+  }
+
   const logLength = detail?.session_log.length ?? 0;
   const cited = result ? citedIndexes(result.evidence, logLength) : new Set<number>();
   const confidence = result?.confidence ?? 0;
@@ -539,8 +593,8 @@ export default function CasesPage() {
       )}
       {cases.length === 0 && !error && (
         <p className="mt-3">
-          No cases yet. Open Sample cases below, copy one, save it under
-          eval/cases/, and refresh this page.
+          No cases yet. Use the Sample cases tab below to copy one, save
+          it under eval/cases/, and refresh this page.
         </p>
       )}
       {cases.length > 0 && (
@@ -570,15 +624,42 @@ export default function CasesPage() {
           </button>
         </div>
       )}
-      <details
-        id="analyser"
-        className="mt-3"
-        open={analyserOpen}
-        onToggle={(e) => setAnalyserOpen(e.currentTarget.open)}
+      <div
+        id="tools"
+        className="mt-3 flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Case tools"
+        onKeyDown={onTabKeyDown}
       >
-        <summary className="cursor-pointer text-sm hover:underline">
-          Analyse pasted JSON (no file needed)
-        </summary>
+        {TABS.map((t, i) => (
+          <button
+            key={t.id}
+            ref={(el) => {
+              tabRefs.current[i] = el;
+            }}
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={activeTab === t.id}
+            aria-controls="tool-panel"
+            tabIndex={activeTab === t.id ? 0 : -1}
+            onClick={() => setActiveTab(t.id)}
+            className={
+              activeTab === t.id
+                ? "border border-ink bg-ink px-2 py-0.5 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-1"
+                : "border border-line-strong px-2 py-0.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {activeTab === "analyse" && (
+      <div
+        id="tool-panel"
+        role="tabpanel"
+        aria-labelledby="tab-analyse"
+        className="mt-2"
+      >
         <label
           htmlFor="paste-case"
           className="mt-2 block text-sm font-medium"
@@ -603,11 +684,15 @@ export default function CasesPage() {
             {busy ? "Analysing…" : "Analyse"}
           </button>
         </div>
-      </details>
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm hover:underline">
-          Sample cases: generate file-ready text to save by hand
-        </summary>
+      </div>
+      )}
+      {activeTab === "samples" && (
+      <div
+        id="tool-panel"
+        role="tabpanel"
+        aria-labelledby="tab-samples"
+        className="mt-2"
+      >
         <div className="mt-2 flex gap-2">
           {["C-014", "C-021", "C-032"].map((id) => (
             <button
@@ -625,8 +710,9 @@ export default function CasesPage() {
             className={`${field} px-3`}
             onClick={() => {
               setPasted(SAMPLE_CASES[sample].json);
-              setAnalyserOpen(true);
-              scrollToId("analyser");
+              setActiveTab("analyse");
+              focusTab("analyse");
+              scrollToId("tools");
             }}
           >
             Use {sample} in analyser
@@ -655,11 +741,15 @@ export default function CasesPage() {
         <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
           {SAMPLE_CASES[sample].label}
         </pre>
-      </details>
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm hover:underline">
-          Build a custom sample (generate case + label draft)
-        </summary>
+      </div>
+      )}
+      {activeTab === "build" && (
+      <div
+        id="tool-panel"
+        role="tabpanel"
+        aria-labelledby="tab-build"
+        className="mt-2"
+      >
         <div className="mt-2 grid max-w-2xl gap-3 md:grid-cols-2">
           <div>
             <label
@@ -830,8 +920,9 @@ export default function CasesPage() {
             className={`${field} px-3`}
             onClick={() => {
               setPasted(genCaseJson);
-              setAnalyserOpen(true);
-              scrollToId("analyser");
+              setActiveTab("analyse");
+              focusTab("analyse");
+              scrollToId("tools");
             }}
           >
             Use in analyser
@@ -843,7 +934,8 @@ export default function CasesPage() {
         <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
           {genLabelRow}
         </pre>
-      </details>
+      </div>
+      )}
       {busy && showBusy && (
         <p className="mt-3 flex items-center gap-2 text-sm" role="status">
           <span
@@ -883,14 +975,19 @@ export default function CasesPage() {
               Refund draft: {result.refund_draft.amount_kes} KES
             </span>
           )}
+          {!drawerOpen && (
+            <button
+              className={`${field} px-3`}
+              onClick={() => setDrawerOpen(true)}
+            >
+              View diagnosis
+            </button>
+          )}
         </div>
       )}
 
-      {(detail || result) && (
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
-          <div>
       {detail && (
-        <section>
+        <section className="mt-6">
           <h2 className="text-lg font-semibold">Complaint</h2>
           <div className="mt-1 rounded border border-line bg-surface p-3">
             <p>{detail.complaint.text}</p>
@@ -927,8 +1024,27 @@ export default function CasesPage() {
           )}
         </section>
       )}
-          </div>
-          <div>
+      <div
+        aria-hidden="true"
+        onClick={() => setDrawerOpen(false)}
+        className={`fixed inset-0 bg-ink/50 transition-opacity ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Diagnosis"
+        inert={!drawerOpen}
+        className={`fixed inset-y-0 right-0 w-full max-w-xl overflow-y-auto border-l border-line bg-canvas p-6 transition-transform ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex justify-end">
+          <button
+            className={`${field} px-3`}
+            onClick={() => setDrawerOpen(false)}
+            aria-label="Close diagnosis"
+          >
+            Close
+          </button>
+        </div>
       {result && (
         <section id="diagnosis">
           <div className="flex flex-wrap items-center gap-3">
@@ -972,7 +1088,11 @@ export default function CasesPage() {
               <li key={i}>
                 {item.source}:{" "}
                 {item.source === "log" ? (
-                  <LogEvidenceRef itemRef={item.ref} logLength={logLength} />
+                  <LogEvidenceRef
+                    itemRef={item.ref}
+                    logLength={logLength}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
                 ) : (
                   item.ref
                 )}{" "}
@@ -1161,9 +1281,7 @@ export default function CasesPage() {
           )}
         </section>
       )}
-          </div>
-        </div>
-      )}
+      </aside>
     </main>
   );
 }

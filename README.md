@@ -1,4 +1,4 @@
-# Failed-Session Resolver
+# EV-Failed-Session Resolver
 
 Built for the Meta hackathon.
 

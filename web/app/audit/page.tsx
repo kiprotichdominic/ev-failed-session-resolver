@@ -19,7 +19,12 @@ type Run = {
 
 type Peek = {
   side: string | null;
+  cause: string | null;
+  confidence: number | null;
+  verified: number;
+  clauses: number;
   escalate: boolean;
+  reasons: string[];
   refund: number | null;
 };
 
@@ -27,9 +32,16 @@ function peek(resultJson: string | null): Peek | null {
   if (!resultJson) return null;
   try {
     const r = JSON.parse(resultJson);
+    const verification: Record<string, boolean> = r.verification ?? {};
+    const entries = Object.entries(verification);
     return {
       side: r.side ?? null,
+      cause: r.cause ?? null,
+      confidence: typeof r.confidence === "number" ? r.confidence : null,
+      verified: entries.filter(([, ok]) => ok).length,
+      clauses: entries.length,
       escalate: r.escalate === true,
+      reasons: Array.isArray(r.escalate_reasons) ? r.escalate_reasons : [],
       refund: r.refund_draft ? r.refund_draft.amount_kes : null,
     };
   } catch {
@@ -229,17 +241,28 @@ export default function AuditPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{row.case_id}</span>
                 <DecisionBadge decision={row.decision} />
-                {p && (
-                  <span className="text-sm text-muted">
-                    {p.side ?? "no output"}
-                    {p.escalate ? " · escalated" : ""}
-                    {p.refund !== null ? ` · refund ${p.refund} KES` : ""}
-                  </span>
-                )}
                 <span className="text-sm text-muted" title={row.created_at}>
                   {shortTime(row.created_at)}
                 </span>
               </div>
+              {p ? (
+                <div className="mt-1 text-sm">
+                  <p>{p.cause ?? "—"}</p>
+                  <p className="mt-0.5 text-muted">
+                    {p.side ?? "no output"}
+                    {p.confidence !== null &&
+                      ` · ${Math.round(p.confidence * 100)}%`}
+                    {p.clauses > 0 &&
+                      ` · clauses ${p.verified}/${p.clauses} verified`}
+                    {p.refund !== null ? ` · refund ${p.refund} KES` : ""}
+                    {p.escalate
+                      ? ` · escalated (${p.reasons.join(", ") || "see reasons"})`
+                      : ""}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-muted">(no result recorded)</p>
+              )}
               {row.note ? (
                 <p className="mt-1 text-sm">Note: {row.note}</p>
               ) : null}
