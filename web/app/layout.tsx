@@ -40,6 +40,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Banners />
         </div>
         {children}
+        <footer className="mt-auto pt-6">
+          <div className="border-t border-line">
+            <div className="mx-auto w-full max-w-6xl px-6 py-3 text-sm text-muted">
+              MIT licensed. Built for the Meta Global AI Developer Hackathon
+              2026. An independent project, not made or endorsed by Meta.
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );

@@ -62,6 +62,52 @@ Eval harness (needs the human-written cases and labels):
 .venv/bin/python eval/baseline.py --split dev --runs 3
 ```
 
+## Architecture
+
+```mermaid
+flowchart TD
+    A["Driver complaint, session log, payment record"] --> B["calc.py energy, owed, refund"]
+    A --> C["codes.py and retrieve.py fault codes, reference clauses"]
+    B -->|"facts, never amounts"| D["Muse Spark side, cause, evidence, driver message"]
+    C -->|"reference chunks"| D
+    D -->|"placeholders only, no figures"| E["rules.py verify citations, check confidence, escalate"]
+    B -->|"calc values"| E
+    E --> F["pipeline.py merge, fill placeholders"]
+    F --> G[("audit.db prompt, output, decision trail")]
+    F --> H["UI resolve, review, approve or reject"]
+```
+
+The one rule the diagram exists to show: **code computes, the model
+explains.** Every number comes from `calc.py`; the model only reads messy
+text and writes narrative with `{{placeholders}}` that code fills in.
+
+### How a case flows
+
+1. **Measure** — `calc.py` derives energy, owed, and refund from the
+   meters and tariff. No model involved.
+2. **Look up** — `codes.py` maps fault codes to side hints;
+   `retrieve.py` pulls the matching reference clauses.
+3. **Explain** — Muse Spark gets the complaint, the log, a few boolean
+   facts, and the clauses. It returns a side, cause, cited evidence, and
+   messages with placeholders instead of figures.
+4. **Verify** — `rules.py` checks every citation, the confidence floor,
+   amount consistency, and hazard handling. Anything failing escalates to
+   a human.
+5. **Decide** — `pipeline.py` merges model text with code numbers, logs
+   the run to `audit.db`, and the UI presents the refund draft for
+   one-click approve or reject. Nothing executes automatically.
+
+### Who does what
+
+| Stage | Does | Never does |
+|---|---|---|
+| `calc.py` | energy, owed, refund, still-open, offline minutes | reads the complaint |
+| `codes.py` + `retrieve.py` | fault-code hints, clause lookup | judges the case |
+| Model (Muse Spark) | side, cause, evidence, driver and technician text | arithmetic, figures, or decisions |
+| `rules.py` | citation plus confidence plus amount checks, escalation | calls the model |
+| `pipeline.py` | merges fields, fills placeholders, writes audit row | invents numbers |
+| `audit.db` + UI | full trail of runs, human approve or reject | auto-executes refunds or resets |
+
 ## Built during the event vs third-party
 
 Everything under `resolver/`, `app.py`, `eval/` (runner, baseline, cases,
