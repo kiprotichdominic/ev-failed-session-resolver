@@ -7,13 +7,13 @@ and 2 below so they stop being pasted into every session prompt.
 > automatically (vs `CLAUDE.md` or another name) by testing one session
 > before relying on it.
 
-## 1. TODO — brief Section 1 title
+## 1. TODO - brief Section 1 title
 
-TODO — human pastes brief Section 1 here.
+TODO - human pastes brief Section 1 here.
 
-## 2. TODO — brief Section 2 title
+## 2. TODO - brief Section 2 title
 
-TODO — human pastes brief Section 2 here.
+TODO - human pastes brief Section 2 here.
 
 ## Standing rules (repo facts the agent must respect)
 

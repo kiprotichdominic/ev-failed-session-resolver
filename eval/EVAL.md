@@ -1,6 +1,6 @@
 # Evaluation
 
-Human-written. How the eval was built, how to rerun it, and what happened —
+Human-written. How the eval was built, how to rerun it, and what happened -
 including every failure.
 
 > Status: no cases or labels yet (Session 0). This file fills in as the eval
@@ -8,13 +8,13 @@ including every failure.
 
 ## How the cases and labels were written
 
-TODO — human writes: what each case contains, how labels/expected outputs
+TODO - human writes: what each case contains, how labels/expected outputs
 were derived, and confirmation that labels were fixed before the resolver
 was tuned against them.
 
 ## Dev / held-out split
 
-TODO — human writes: which cases are dev (may be inspected while building)
+TODO - human writes: which cases are dev (may be inspected while building)
 vs held-out (never inspected until the final run), file lists, and the
 rule for keeping held-out cases unseen.
 
@@ -44,5 +44,5 @@ TODO.
 
 ## Failed cases
 
-TODO — every failed case, dev and held-out: case id, expected vs actual,
+TODO - every failed case, dev and held-out: case id, expected vs actual,
 and a one-line diagnosis. No failures hidden.

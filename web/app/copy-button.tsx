@@ -30,7 +30,7 @@ export default function CopyButton({
       {state === "copied"
         ? "Copied"
         : state === "failed"
-          ? "Copy failed — select manually"
+          ? "Copy failed - select manually"
           : label}
     </button>
   );

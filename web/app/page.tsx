@@ -462,7 +462,7 @@ export default function CasesPage() {
       });
       if (!r.ok) throw new Error("decision failed");
       const row = await r.json();
-      setDecision(`${row.decision} — ${row.note ?? ""}`);
+      setDecision(`${row.decision} - ${row.note ?? ""}`);
       setConfirming(false);
     } catch {
       setError("Could not record decision. Is the API running?");
@@ -577,7 +577,7 @@ export default function CasesPage() {
 
   function reasonDetail(reason: string): string | null {
     if (reason === "low confidence" && result?.confidence !== null) {
-      return `(${Math.round(confidence * 100)}% — see Diagnosis)`;
+      return `(${Math.round(confidence * 100)}% - see Diagnosis)`;
     }
     if (reason === "unverified citation") {
       return "(see failed clause above)";
@@ -1095,12 +1095,12 @@ export default function CasesPage() {
               </div>
               <p className={`mt-1 text-sm ${muted}`}>
                 Self-reported by the model, not a calibrated probability.
-                Below the escalation threshold it forces human review — verify
+                Below the escalation threshold it forces human review - verify
                 the side against the log and clauses before acting.
               </p>
             </>
           )}
-          <p className="mt-2">{result.cause ?? "—"}</p>
+          <p className="mt-2">{result.cause ?? "-"}</p>
 
           <h3 className="mt-4 font-medium">Evidence</h3>
           {result.evidence.length === 0 && (
@@ -1135,7 +1135,7 @@ export default function CasesPage() {
                       (not among cited clauses)
                     </span>
                   ))}{" "}
-                — {item.note}
+                - {item.note}
               </li>
             ))}
           </ul>
@@ -1143,7 +1143,7 @@ export default function CasesPage() {
           <h3 className="mt-4 font-medium">Clauses</h3>
           {Object.keys(result.verification).length === 0 ? (
             <p className={`text-sm ${muted}`}>
-              No clauses cited — confident claims need corpus references.
+              No clauses cited - confident claims need corpus references.
             </p>
           ) : (
             <div className="mt-1 flex flex-wrap gap-2">
@@ -1166,7 +1166,7 @@ export default function CasesPage() {
           <h3 className="mt-4 font-medium">Numbers (computed by code)</h3>
           {result.calc === null ? (
             <p className={`text-sm ${muted}`}>
-              No calculation — the log has no usable meter data.
+              No calculation - the log has no usable meter data.
             </p>
           ) : (
             <dl className="mt-1 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">

@@ -121,7 +121,7 @@ function RawOutput({ text }: { text: string }) {
     pretty = JSON.stringify(JSON.parse(text), null, 2);
     ok = true;
   } catch {
-    /* not JSON — render as plain text */
+    /* not JSON - render as plain text */
   }
   return (
     <div>
@@ -266,7 +266,7 @@ export default function AuditPage() {
               </div>
               {p ? (
                 <div className="mt-1 text-sm">
-                  <p>{p.cause ?? "—"}</p>
+                  <p>{p.cause ?? "-"}</p>
                   <p className="mt-0.5 text-muted">
                     {p.side ?? "no output"}
                     {p.confidence !== null &&

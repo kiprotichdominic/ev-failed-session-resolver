@@ -5,7 +5,7 @@ Built for the Meta hackathon.
 All data in this demo is synthetic.
 
 30-second pitch: when an EV charging session fails, drivers and support agents get
-conflicting numbers — what the car drew, what the charger delivered, what was
+conflicting numbers - what the car drew, what the charger delivered, what was
 refunded. This tool reconstructs the failed session from the raw inputs, resolves
 exactly what is owed or refunded using auditable code-only arithmetic, and
 escalates only the cases a human must see. The model explains; it never computes
@@ -45,14 +45,14 @@ Tester walkthrough (about 5 minutes):
 3. Left pane shows the complaint and session log (cited rows highlighted);
    right pane shows the diagnosis. Click an evidence ref to jump to its row.
 4. No escalation: write a decision note, press Approve, see the recorded
-   decision. Escalated (try C-021): there is no Approve button — review the
+   decision. Escalated (try C-021): there is no Approve button - review the
    reasons instead.
 5. Audit: every run lands here with its raw model output; filter by decision.
 6. Evaluation: compare model vs code-only baseline once `eval/results.json`
    exists (commands below).
 
 If no cases exist yet, the Cases page shows a sample case with a copy
-button — save it as `eval/cases/C-014.json`, add its label row to
+button - save it as `eval/cases/C-014.json`, add its label row to
 `eval/labels.json` (both human-written), and refresh.
 
 Eval harness (needs the human-written cases and labels):
@@ -83,17 +83,17 @@ text and writes narrative with `{{placeholders}}` that code fills in.
 
 ### How a case flows
 
-1. **Measure** — `calc.py` derives energy, owed, and refund from the
+1. **Measure** - `calc.py` derives energy, owed, and refund from the
    meters and tariff. No model involved.
-2. **Look up** — `codes.py` maps fault codes to side hints;
+2. **Look up** - `codes.py` maps fault codes to side hints;
    `retrieve.py` pulls the matching reference clauses.
-3. **Explain** — Muse Spark gets the complaint, the log, a few boolean
+3. **Explain** - Muse Spark gets the complaint, the log, a few boolean
    facts, and the clauses. It returns a side, cause, cited evidence, and
    messages with placeholders instead of figures.
-4. **Verify** — `rules.py` checks every citation, the confidence floor,
+4. **Verify** - `rules.py` checks every citation, the confidence floor,
    amount consistency, and hazard handling. Anything failing escalates to
    a human.
-5. **Decide** — `pipeline.py` merges model text with code numbers, logs
+5. **Decide** - `pipeline.py` merges model text with code numbers, logs
    the run to `audit.db`, and the UI presents the refund draft for
    one-click approve or reject. Nothing executes automatically.
 
@@ -142,13 +142,13 @@ Full method, rerun instructions, and every failed case:
 
 ## Docs
 
-- [REVIEW.md](REVIEW.md) — per-session human review log (what was built when).
-- [eval/EVAL.md](eval/EVAL.md) — eval method and results.
-- [corpus/SOURCES.md](corpus/SOURCES.md) — corpus provenance and licenses.
-- [THIRD_PARTY.md](THIRD_PARTY.md) — libraries and outside text.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture and worked example.
-- [docs/DEMO.md](docs/DEMO.md) — demo video script and case order.
+- [REVIEW.md](REVIEW.md) - per-session human review log (what was built when).
+- [eval/EVAL.md](eval/EVAL.md) - eval method and results.
+- [corpus/SOURCES.md](corpus/SOURCES.md) - corpus provenance and licenses.
+- [THIRD_PARTY.md](THIRD_PARTY.md) - libraries and outside text.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - architecture and worked example.
+- [docs/DEMO.md](docs/DEMO.md) - demo video script and case order.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
