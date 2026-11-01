@@ -114,3 +114,19 @@ def test_audit_row_written(fixture_corpus, tmp_path):
     count = sqlite3.connect(db).execute("SELECT COUNT(*) FROM cases").fetchone()[0]
     assert count == 1
     assert get_case(db, "C-014")["raw_output"] == raw
+
+
+def test_resolve_includes_client_usage(fixture_corpus):
+    from resolver.models import Usage
+
+    client = FakeModelClient([_reply()])
+    client.usage_total = Usage(prompt_tokens=10, completion_tokens=5,
+                               total_tokens=15)
+    result = resolve_case(_c014(), client, fixture_corpus)
+    assert result.usage is not None
+    assert result.usage.total_tokens == 15
+
+
+def test_resolve_usage_none_without_model_call(fixture_corpus):
+    result = resolve_case(_c014(), FakeModelClient([_reply()]), fixture_corpus)
+    assert result.usage is None

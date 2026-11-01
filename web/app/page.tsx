@@ -118,6 +118,11 @@ type Result = {
   escalate: boolean;
   escalate_reasons: string[];
   verification: Record<string, boolean>;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  } | null;
 };
 type CaseFile = {
   case_id: string;
@@ -276,6 +281,7 @@ export default function CasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [mode, setMode] = useState<string | null>(null);
   const [showBusy, setShowBusy] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sample, setSample] = useState("C-014");
@@ -302,6 +308,10 @@ export default function CasesPage() {
         if (ids.length > 0) setSelected(ids[0]);
       })
       .catch(() => setError("Could not reach the API at " + API));
+    fetch(`${API}/api/status`)
+      .then((r) => r.json())
+      .then((d) => setMode(d.mode ?? null))
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -975,6 +985,19 @@ export default function CasesPage() {
               Refund draft: {result.refund_draft.amount_kes} KES
             </span>
           )}
+          {result.usage ? (
+            <span
+              className="tabular-nums text-muted"
+              title="prompt tokens in · completion tokens out"
+            >
+              {result.usage.prompt_tokens.toLocaleString()} in ·{" "}
+              {result.usage.completion_tokens.toLocaleString()} out
+            </span>
+          ) : (
+            mode === "fake" && (
+              <span className="text-muted">canned · no tokens spent</span>
+            )
+          )}
           {!drawerOpen && (
             <button
               className={`${field} px-3`}
@@ -1162,6 +1185,21 @@ export default function CasesPage() {
               <dt className={muted}>Still open</dt>
               <dd>{String(result.still_open)}</dd>
             </dl>
+          )}
+          {result.usage && (
+            <div className="mt-3 rounded border border-line bg-surface p-3">
+              <p className={`text-sm font-medium ${muted}`}>Token usage</p>
+              <dl className="mt-1 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
+                <dt className={muted}>Prompt in</dt>
+                <dd>{result.usage.prompt_tokens.toLocaleString()}</dd>
+                <dt className={muted}>Completion out</dt>
+                <dd>{result.usage.completion_tokens.toLocaleString()}</dd>
+                <dt className={muted}>Total</dt>
+                <dd className="font-medium">
+                  {result.usage.total_tokens.toLocaleString()}
+                </dd>
+              </dl>
+            </div>
           )}
           {result.technician_note && (
             <div className="mt-2 text-sm">

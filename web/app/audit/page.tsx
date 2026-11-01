@@ -26,6 +26,7 @@ type Peek = {
   escalate: boolean;
   reasons: string[];
   refund: number | null;
+  usage: { prompt_tokens: number; completion_tokens: number } | null;
 };
 
 function peek(resultJson: string | null): Peek | null {
@@ -43,6 +44,13 @@ function peek(resultJson: string | null): Peek | null {
       escalate: r.escalate === true,
       reasons: Array.isArray(r.escalate_reasons) ? r.escalate_reasons : [],
       refund: r.refund_draft ? r.refund_draft.amount_kes : null,
+      usage:
+        r.usage && typeof r.usage.prompt_tokens === "number"
+          ? {
+              prompt_tokens: r.usage.prompt_tokens,
+              completion_tokens: r.usage.completion_tokens ?? 0,
+            }
+          : null,
     };
   } catch {
     return null;
@@ -187,6 +195,15 @@ export default function AuditPage() {
   const approved = (runs ?? []).filter((r) => r.decision === "approve").length;
   const rejected = (runs ?? []).filter((r) => r.decision === "reject").length;
   const undecided = (runs ?? []).filter((r) => r.decision === null).length;
+  const tokensOf = (row: Run): number => {
+    const u = peek(row.result_json)?.usage;
+    return u ? u.prompt_tokens + u.completion_tokens : 0;
+  };
+  const tokensTotal = (runs ?? []).reduce((s, r) => s + tokensOf(r), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const tokensToday = (runs ?? [])
+    .filter((r) => r.created_at.startsWith(today))
+    .reduce((s, r) => s + tokensOf(r), 0);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pt-6">
@@ -211,6 +228,8 @@ export default function AuditPage() {
           <p className="mt-2 text-sm tabular-nums">
             {runs.length} runs · {approved} approved · {rejected} rejected ·{" "}
             {undecided} undecided
+            {tokensTotal > 0 &&
+              ` · ${tokensTotal.toLocaleString()} tokens total · ${tokensToday.toLocaleString()} today`}
           </p>
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter runs by decision">
             {FILTERS.map((f) => (
@@ -255,6 +274,8 @@ export default function AuditPage() {
                     {p.clauses > 0 &&
                       ` · clauses ${p.verified}/${p.clauses} verified`}
                     {p.refund !== null ? ` · refund ${p.refund} KES` : ""}
+                    {p.usage !== null &&
+                      ` · ${p.usage.prompt_tokens.toLocaleString()} in · ${p.usage.completion_tokens.toLocaleString()} out`}
                     {p.escalate
                       ? ` · escalated (${p.reasons.join(", ") || "see reasons"})`
                       : ""}

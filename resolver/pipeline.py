@@ -82,6 +82,7 @@ def resolve_case(case: Case | dict, client: model_mod.ModelClient,
         escalate=decision.escalate,
         escalate_reasons=decision.reasons,
         verification={c: c in corpus for c in (model_out.clause_ids if model_out else [])},
+        usage=getattr(client, "usage_total", None),
     )
     if audit_path is not None:
         input_hash = hashlib.sha256(case.model_dump_json().encode("utf-8")).hexdigest()

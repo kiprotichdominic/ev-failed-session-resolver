@@ -196,3 +196,35 @@ def test_non_trio_language_accepted():
     reply = _reply_json(driver_message={"language": "it",
                                         "text": "Sessione {{energy_kwh}} kWh."})
     assert parse_and_validate(reply).driver_message.language == "it"
+
+
+def test_meta_client_records_usage():
+    from unittest.mock import MagicMock, patch
+
+    reply = _reply_json()
+    resp = MagicMock()
+    resp.json.return_value = {
+        "choices": [{"message": {"content": reply}}],
+        "usage": {"prompt_tokens": 120, "completion_tokens": 45,
+                  "total_tokens": 165},
+    }
+    client = MetaClient(api_key="test-key")
+    assert client.usage_total is None
+    with patch("httpx.post", return_value=resp):
+        client.complete("sys", "user")
+        client.complete("sys", "user")
+    assert client.usage_total is not None
+    assert (client.usage_total.prompt_tokens,
+            client.usage_total.completion_tokens,
+            client.usage_total.total_tokens) == (240, 90, 330)
+
+
+def test_meta_client_missing_usage_stays_none():
+    from unittest.mock import MagicMock, patch
+
+    resp = MagicMock()
+    resp.json.return_value = {"choices": [{"message": {"content": _reply_json()}}]}
+    client = MetaClient(api_key="test-key")
+    with patch("httpx.post", return_value=resp):
+        client.complete("sys", "user")
+    assert client.usage_total is None

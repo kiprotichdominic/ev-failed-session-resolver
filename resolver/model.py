@@ -7,7 +7,7 @@ from typing import Protocol
 
 import httpx
 
-from resolver.models import Case, ModelOutput
+from resolver.models import Case, ModelOutput, Usage
 from resolver.retrieve import Chunk
 
 SYSTEM_PROMPT = """You analyze failed EV charging sessions for a charging operator. You receive a driver complaint, an indexed session log, a few facts and reference chunks.
@@ -44,6 +44,7 @@ class FakeModelClient(ModelClient):
     def __init__(self, replies: list[str]):
         self._replies = list(replies)
         self.calls: list[dict] = []
+        self.usage_total: Usage | None = None
 
     def complete(self, system: str, user: str) -> str:
         self.calls.append({"system": system, "user": user})
@@ -74,6 +75,7 @@ class MetaClient(ModelClient):
         self.base_url = (base_url or os.environ.get("META_BASE_URL")
                          or self.DEFAULT_BASE_URL).rstrip("/")
         self.timeout = timeout
+        self.usage_total: Usage | None = None
 
     def complete(self, system: str, user: str) -> str:
         resp = httpx.post(
@@ -87,13 +89,35 @@ class MetaClient(ModelClient):
             timeout=self.timeout,
         )
         resp.raise_for_status()
+        data = resp.json()
         try:
-            content = resp.json()["choices"][0]["message"]["content"]
+            content = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise ValueError(f"unexpected Meta API response shape: {exc}")
         if not isinstance(content, str):
             raise ValueError("unexpected Meta API response shape: no text content")
+        self._record_usage(data.get("usage") if isinstance(data, dict) else None)
         return content
+
+    def _record_usage(self, usage) -> None:
+        if not isinstance(usage, dict) or not usage:
+            return
+        try:
+            prompt = int(usage.get("prompt_tokens") or 0)
+            completion = int(usage.get("completion_tokens") or 0)
+            total = int(usage.get("total_tokens") or 0)
+        except (TypeError, ValueError):
+            return
+        if self.usage_total is None:
+            self.usage_total = Usage(prompt_tokens=prompt,
+                                     completion_tokens=completion,
+                                     total_tokens=total)
+        else:
+            self.usage_total = Usage(
+                prompt_tokens=self.usage_total.prompt_tokens + prompt,
+                completion_tokens=self.usage_total.completion_tokens + completion,
+                total_tokens=self.usage_total.total_tokens + total,
+            )
 
 
 def build_user_message(case: Case, facts: dict, chunks: list[Chunk]) -> str:

@@ -56,6 +56,10 @@ const SHARE_METRICS = [
   "refund_correct",
 ];
 
+function total(values: (number | null)[]): number {
+  return values.reduce((s: number, v) => s + (v ?? 0), 0);
+}
+
 function mean(values: (number | null)[]): number | null {
   const xs = values.filter((v): v is number => v !== null);
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
@@ -63,6 +67,54 @@ function mean(values: (number | null)[]): number | null {
 
 function fmt(v: number | null): string {
   return v === null ? "n/a" : v.toFixed(2);
+}
+
+function VerdictStrip({
+  results,
+  baseline,
+}: {
+  results: Payload;
+  baseline: Payload | null;
+}) {
+  const side = mean(results.metrics["side_accuracy"]?.values ?? []);
+  const refund = mean(results.metrics["refund_correct"]?.values ?? []);
+  const hcw = results.metrics["high_confidence_wrong"];
+  let wins = 0;
+  let totalPairs = 0;
+  if (baseline) {
+    for (const name of SHARE_METRICS) {
+      const a = mean(results.metrics[name]?.values ?? []);
+      const b = mean(baseline.metrics[name]?.values ?? []);
+      if (a === null || b === null) continue;
+      totalPairs += 1;
+      if (a > b) wins += 1;
+    }
+  }
+  return (
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded border border-line p-2 text-sm tabular-nums">
+      <span>
+        side_accuracy <span className="font-medium">{fmt(side)}</span>
+      </span>
+      <span>
+        refund_correct <span className="font-medium">{fmt(refund)}</span>
+      </span>
+      <span>
+        high-confidence wrong{" "}
+        <span className="font-medium">
+          {hcw ? total(hcw.values) : "n/a"}
+        </span>
+      </span>
+      {baseline && totalPairs > 0 && (
+        <span>
+          beats baseline{" "}
+          <span className="font-medium">
+            {wins}/{totalPairs}
+          </span>{" "}
+          share metrics
+        </span>
+      )}
+    </div>
+  );
 }
 
 function Bar({ value, className }: { value: number | null; className: string }) {
@@ -118,6 +170,23 @@ function CompareBars({
               <span className="tabular-nums">
                 {fmt(a)}
                 {baseline && ` vs ${fmt(b)}`}
+                {baseline && a !== null && b !== null && (
+                  <span
+                    className={
+                      a > b
+                        ? "text-ok-ink"
+                        : a < b
+                          ? "text-bad-ink"
+                          : "text-muted"
+                    }
+                  >
+                    {a > b
+                      ? ` (+${(a - b).toFixed(2)})`
+                      : a < b
+                        ? ` (${(a - b).toFixed(2)})`
+                        : " (±0.00)"}
+                  </span>
+                )}
               </span>
             </div>
             <div className="mt-1">
@@ -133,14 +202,17 @@ function CompareBars({
       })}
       {hcw && (
         <p className="mt-2 text-sm">
-          High-confidence wrong (counts per run, lower is better): model{" "}
-          <span className="tabular-nums">{JSON.stringify(hcw.values)}</span>
+          High-confidence wrong (lower is better): model{" "}
+          <span className="tabular-nums">
+            {JSON.stringify(hcw.values)} (total {total(hcw.values)})
+          </span>
           {hcwBase && (
             <>
               {" "}
               · baseline{" "}
               <span className="tabular-nums">
-                {JSON.stringify(hcwBase.values)}
+                {JSON.stringify(hcwBase.values)} (total{" "}
+                {total(hcwBase.values)})
               </span>
             </>
           )}
@@ -156,7 +228,9 @@ export default function EvaluationPage() {
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setMissing(false);
+    setError(false);
     fetch(`${API}/api/results`)
       .then((r) => {
         if (r.ok) return r.json();
@@ -174,6 +248,10 @@ export default function EvaluationPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setBaseline(d))
       .catch(() => null);
+  }
+
+  useEffect(() => {
+    load();
   }, []);
 
   return (
@@ -194,8 +272,14 @@ export default function EvaluationPage() {
 {`# 1. add cases + eval/labels.json (human-written)
 python eval/run_eval.py --split dev --runs 3 --client fake
 python eval/baseline.py --split dev --runs 3
-# 2. refresh this page`}
+# 2. press Check again below`}
           </pre>
+          <button
+            className="mt-2 border border-line-strong px-2 py-0.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
+            onClick={load}
+          >
+            Check again
+          </button>
         </div>
       )}
       {results && (
@@ -204,6 +288,7 @@ python eval/baseline.py --split dev --runs 3
             Split: {results.split}, runs: {results.runs}, cases:{" "}
             {results.num_cases}
           </p>
+          <VerdictStrip results={results} baseline={baseline} />
           <CompareBars results={results} baseline={baseline} />
           <div
             className={baseline ? "mt-3 grid gap-6 md:grid-cols-2" : "mt-3"}
@@ -216,11 +301,61 @@ python eval/baseline.py --split dev --runs 3
           <ul className="list-disc pl-5">
             {results.failures.map((f, i) => (
               <li key={i}>
-                {f.case_id} / {f.field}: expected {JSON.stringify(f.expected)},
-                got {JSON.stringify(f.got)}
+                {f.case_id} / {f.field}: expected{" "}
+                <code className="font-mono">{JSON.stringify(f.expected)}</code>
+                , got{" "}
+                <code className="font-mono">{JSON.stringify(f.got)}</code>
               </li>
             ))}
           </ul>
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm hover:underline">
+              What these metrics mean
+            </summary>
+            <ul className="mt-1 space-y-1 text-sm">
+              <li>
+                <span className="font-medium">side_accuracy</span>
+                <span className="text-muted">
+                  : share of cases with the right at-fault side (a model
+                  failure counts as wrong).
+                </span>
+              </li>
+              <li>
+                <span className="font-medium">clause_match</span>
+                <span className="text-muted">
+                  : share where the cited clause set exactly equals the
+                  label&apos;s.
+                </span>
+              </li>
+              <li>
+                <span className="font-medium">citation_pass_rate</span>
+                <span className="text-muted">
+                  : share of cases without an unverified citation.
+                </span>
+              </li>
+              <li>
+                <span className="font-medium">
+                  escalation_precision, escalation_recall
+                </span>
+                <span className="text-muted">
+                  : with escalated as the positive class; null when undefined.
+                </span>
+              </li>
+              <li>
+                <span className="font-medium">refund_correct</span>
+                <span className="text-muted">
+                  : share where the draft amount matches, or both are null.
+                </span>
+              </li>
+              <li>
+                <span className="font-medium">high_confidence_wrong</span>
+                <span className="text-muted">
+                  : wrong-side cases at confidence 0.8 or above (lower is
+                  better).
+                </span>
+              </li>
+            </ul>
+          </details>
         </>
       )}
     </main>

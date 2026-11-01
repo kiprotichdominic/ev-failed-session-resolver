@@ -83,6 +83,12 @@ class ModelOutput(StrictModel):
 
 # Session 6: merged result contract (model fields plus code-written fields).
 
+class Usage(StrictModel):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
 class RefundDraft(StrictModel):
     amount_kes: int
     requires_approval: bool
@@ -103,3 +109,4 @@ class Result(StrictModel):
     escalate: bool
     escalate_reasons: list[str] = []
     verification: dict[str, bool] = {}
+    usage: Optional[Usage] = None
