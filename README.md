@@ -148,3 +148,7 @@ Full method, rerun instructions, and every failed case:
 - [THIRD_PARTY.md](THIRD_PARTY.md) — libraries and outside text.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture and worked example.
 - [docs/DEMO.md](docs/DEMO.md) — demo video script and case order.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
