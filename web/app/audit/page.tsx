@@ -180,8 +180,10 @@ export default function AuditPage() {
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [today, setToday] = useState("");
 
   useEffect(() => {
+    setToday(new Date().toISOString().slice(0, 10));
     fetch(`${API}/api/audit`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setRuns(d.runs ?? []))
@@ -200,10 +202,12 @@ export default function AuditPage() {
     return u ? u.prompt_tokens + u.completion_tokens : 0;
   };
   const tokensTotal = (runs ?? []).reduce((s, r) => s + tokensOf(r), 0);
-  const today = new Date().toISOString().slice(0, 10);
-  const tokensToday = (runs ?? [])
-    .filter((r) => r.created_at.startsWith(today))
-    .reduce((s, r) => s + tokensOf(r), 0);
+  const tokensToday =
+    today === ""
+      ? 0
+      : (runs ?? [])
+          .filter((r) => r.created_at.startsWith(today))
+          .reduce((s, r) => s + tokensOf(r), 0);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pt-6">
