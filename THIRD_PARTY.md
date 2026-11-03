@@ -7,7 +7,7 @@
 - fastapi - HTTP API for the Next.js UI (api.py; human-approved Oct 28)
 - uvicorn - API server (human-approved Oct 28)
 - httpx - API tests via FastAPI TestClient, and Meta API calls in MetaClient (human-approved Oct 28; no new dependency for Session 7)
-- HTTP client for the Meta API - to be chosen in Session 7 once the human pastes the API docs. Not added yet.
+- httpx doubles as the Meta API HTTP client (chosen in Session 7; no extra dependency).
 - Node dependencies for web/ are pinned in web/package.json.
 - react-icons - sun/moon icons for the theme toggle (web/app/theme-toggle.tsx).
 - streamlit - removed Oct 28 when the UI moved to Next.js + API (human decision).
