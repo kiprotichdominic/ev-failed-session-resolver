@@ -1,5 +1,5 @@
 import Link from "next/link";
-import NavLinks from "./nav-links";
+import Logo from "./logo";
 import StatusDot from "./status-dot";
 import ThemeToggle from "./theme-toggle";
 
@@ -17,13 +17,16 @@ async function getStatus(): Promise<{ mode: string; model: string } | null> {
 
 export function NavbarFallback() {
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-canvas">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
+    <header className="sticky top-0 z-10 border-b border-line bg-canvas lg:hidden">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm font-semibold tracking-tight hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4"
+        >
+          <Logo size={20} />
           EV-Failed-Session Resolver
         </Link>
-        <NavLinks />
-        <div className="ml-auto">
+        <div className="ml-auto hidden sm:block">
           <ThemeToggle />
         </div>
       </div>
@@ -34,13 +37,19 @@ export function NavbarFallback() {
 export default async function Navbar() {
   const status = await getStatus();
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-canvas">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
+    <header className="sticky top-0 z-10 border-b border-line bg-canvas lg:hidden">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm font-semibold tracking-tight hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4"
+        >
+          <Logo size={20} />
           EV-Failed-Session Resolver
         </Link>
-        <NavLinks />
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto hidden items-center gap-4 sm:flex">
+          <ThemeToggle />
+        </div>
+        <div className="flex basis-full items-center gap-4 lg:basis-auto">
           <p className="flex items-center text-sm text-muted" role="status">
           {status === null ? (
             "API unreachable"
@@ -54,7 +63,6 @@ export default async function Navbar() {
             </>
           )}
           </p>
-          <ThemeToggle />
         </div>
       </div>
     </header>

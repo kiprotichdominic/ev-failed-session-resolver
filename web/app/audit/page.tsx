@@ -128,7 +128,7 @@ function RawOutput({ text }: { text: string }) {
       <div className="mb-1 flex justify-start">
         <CopyButton text={text} label="Copy raw" />
       </div>
-      <pre className="overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
         {ok ? highlightJson(pretty) : text}
       </pre>
     </div>
@@ -210,7 +210,7 @@ export default function AuditPage() {
           .reduce((s, r) => s + tokensOf(r), 0);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-6">
+    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">Audit</h1>
       <p className="mt-1 text-sm text-muted">
         Every resolve run, newest first, with the raw model output behind
@@ -229,12 +229,32 @@ export default function AuditPage() {
       )}
       {!error && runs !== null && runs.length > 0 && (
         <>
-          <p className="mt-2 text-sm tabular-nums">
-            {runs.length} runs · {approved} approved · {rejected} rejected ·{" "}
-            {undecided} undecided
-            {tokensTotal > 0 &&
-              ` · ${tokensTotal.toLocaleString()} tokens total · ${tokensToday.toLocaleString()} today`}
-          </p>
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[10px] border border-accent/40 bg-accent/10 p-3 shadow-card">
+              <p className="text-sm text-muted">Undecided</p>
+              <p className="text-4xl font-bold tabular-nums">{undecided}</p>
+              <p className="text-sm text-muted">need a decision</p>
+            </div>
+            <div className="rounded-[10px] border border-line bg-surface p-3">
+              <p className="text-sm text-muted">Runs</p>
+              <p className="text-3xl font-bold tabular-nums">{runs.length}</p>
+              <p className="text-sm text-muted">newest first below</p>
+            </div>
+            <div className="rounded-[10px] border border-line bg-surface p-3">
+              <p className="text-sm text-muted">Approved</p>
+              <p className="text-3xl font-bold tabular-nums">{approved}</p>
+              <p className="text-sm text-muted">{rejected} rejected</p>
+            </div>
+            <div className="rounded-[10px] border border-line bg-surface p-3">
+              <p className="text-sm text-muted">Tokens today</p>
+              <p className="text-3xl font-bold tabular-nums">
+                {tokensToday.toLocaleString()}
+              </p>
+              <p className="text-sm text-muted">
+                {tokensTotal.toLocaleString()} total
+              </p>
+            </div>
+          </div>
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter runs by decision">
             {FILTERS.map((f) => (
               <button
@@ -243,8 +263,8 @@ export default function AuditPage() {
                 aria-pressed={filter === f.id}
                 className={
                   filter === f.id
-                    ? "border border-ink bg-ink px-2 py-0.5 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-1"
-                    : "border border-line-strong px-2 py-0.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
+                    ? "rounded-md border border-accent bg-accent/10 px-2.5 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-1"
+                    : "rounded-md border border-line-strong px-2.5 py-1 text-sm text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1"
                 }
               >
                 {f.label}
@@ -253,13 +273,13 @@ export default function AuditPage() {
           </div>
         </>
       )}
-      <ul>
+      <ul className="mt-3 rounded-[10px] border border-line bg-surface px-4 py-1 shadow-card">
         {visible.map((row, i) => {
           const p = peek(row.result_json);
           return (
             <li
               key={`${row.case_id}-${row.created_at}-${i}`}
-              className="mt-2 border-b border-line pb-2"
+              className="border-b border-line py-3 last:border-b-0"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{row.case_id}</span>

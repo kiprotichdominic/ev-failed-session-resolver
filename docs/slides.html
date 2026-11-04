@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EV-Failed-Session Resolver - Pitch Deck</title>
+<style>
+  :root {
+    --bg: #070b10;
+    --panel: #10161e;
+    --panel2: #0b0f14;
+    --ink: #edf2f7;
+    --muted: #9aa7b4;
+    --accent: #4cc38a;
+    --accent-dim: rgba(76, 195, 138, 0.14);
+    --warn: #e5b567;
+    --warn-dim: rgba(229, 181, 103, 0.14);
+    --line: #243040;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 50% -10%, #12202b 0%, var(--bg) 60%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    overflow: hidden;
+  }
+  .deck { height: 100vh; position: relative; overflow: hidden; }
+  .slide {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 20px);
+    transform: translate(-50%, -50%);
+    width: min(1080px, 94vw);
+    max-height: 86vh;
+    overflow: auto;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 60px 68px 46px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.26s cubic-bezier(0.4, 0, 1, 1),
+      transform 0.26s cubic-bezier(0.4, 0, 1, 1),
+      visibility 0s 0.26s;
+  }
+  .deck[data-dir="next"] .slide:not(.active) {
+    transform: translate(calc(-50% + 48px), -50%);
+  }
+  .deck[data-dir="prev"] .slide:not(.active) {
+    transform: translate(calc(-50% - 48px), -50%);
+  }
+  .slide.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+    transition:
+      opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s;
+  }
+  .slide::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 60px; right: 60px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(90deg, var(--accent), var(--warn));
+  }
+  .kicker {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.95rem; font-weight: 600;
+    color: var(--muted); margin: 0 0 18px;
+  }
+  .kicker .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid rgba(76, 195, 138, 0.4);
+    font-size: 0.8rem; letter-spacing: 0;
+  }
+  h1 { font-size: 2.8rem; line-height: 1.1; margin: 0 0 16px; letter-spacing: -0.025em; font-weight: 800; }
+  h1 .grad { color: var(--accent); }
+  p.lead { font-size: 1.45rem; line-height: 1.55; margin: 0 0 14px; color: var(--ink); }
+  p.sub { font-size: 1.15rem; line-height: 1.6; color: var(--muted); margin: 0 0 10px; }
+  ul { font-size: 1.25rem; line-height: 1.6; margin: 6px 0 0; padding-left: 1.3em; }
+  li { margin-bottom: 10px; }
+  li::marker { color: var(--accent); font-weight: 700; }
+  code { font-family: var(--mono); font-size: 0.85em; background: #070b10; border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; white-space: nowrap; }
+  .rule {
+    border: 1px solid rgba(76, 195, 138, 0.45);
+    background: var(--accent-dim);
+    padding: 16px 24px; margin: 18px 0;
+    font-size: 1.5rem; font-weight: 700; border-radius: 12px;
+    text-align: center;
+  }
+  .flow { display: flex; align-items: stretch; gap: 6px; margin: 26px 0 8px; }
+  .flow .node {
+    flex: 1 1 0; border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 10px; text-align: center; font-size: 0.92rem; color: var(--muted);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .flow .node b { display: block; margin-bottom: 4px; color: var(--ink); font-size: 0.95rem; }
+  .flow .node .pill {
+    display: inline-block; font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-radius: 999px; padding: 2px 9px; margin-bottom: 8px;
+  }
+  .flow .node.code { border-color: rgba(76, 195, 138, 0.45); }
+  .flow .node.code .pill { background: var(--accent-dim); color: var(--accent); }
+  .flow .node.model { border-color: rgba(229, 181, 103, 0.45); }
+  .flow .node.model .pill { background: var(--warn-dim); color: var(--warn); }
+  .flow .arrow { align-self: center; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 26px; margin-top: 28px; }
+  .card { border: 1px solid var(--line); border-radius: 16px; padding: 36px; min-height: min(230px, 22vh); background: rgba(255, 255, 255, 0.015); }
+  .card b { display: block; font-size: 1.55rem; margin-bottom: 10px; }
+  .card span { font-size: 1.28rem; color: var(--muted); line-height: 1.55; }
+  .card .tick { color: var(--accent); font-weight: 700; margin-right: 6px; }
+  .foot {
+    display: flex; justify-content: space-between; gap: 12px;
+    margin-top: 30px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .center { text-align: center; }
+  .center .kicker { justify-content: center; }
+  .hero { font-size: 3.6rem; }
+  .hero-img {
+    width: 100%; max-height: min(300px, 32vh); object-fit: cover;
+    border-radius: 14px; border: 1px solid var(--line);
+    margin: 24px 0 4px; display: block;
+  }
+  .banner-img {
+    width: 100%; max-height: min(200px, 24vh); object-fit: cover;
+    border-radius: 12px; border: 1px solid var(--line);
+    margin-top: 20px; display: block;
+  }
+  .repo {
+    display: inline-block; margin-top: 16px; text-decoration: none;
+    font-family: var(--mono); font-size: 1rem; color: var(--accent);
+    border: 1px solid rgba(76, 195, 138, 0.4); background: var(--accent-dim);
+    border-radius: 10px; padding: 10px 22px;
+  }
+  .chrome {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 20px;
+    background: rgba(7, 11, 16, 0.92);
+    border-top: 1px solid var(--line);
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .chrome .bar { flex: 1; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .chrome .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--warn)); border-radius: 2px; width: 0; transition: width 0.25s ease; }
+  .chrome button {
+    background: none; border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 4px 14px; cursor: pointer; font-size: 0.85rem;
+  }
+  .chrome button:hover { border-color: var(--accent); }
+  .chrome button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome kbd { font-family: var(--mono); font-size: 0.75rem; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+  @media (max-width: 640px) {
+    .slide { padding: 36px 26px 30px; }
+    .slide::before { left: 26px; right: 26px; }
+    h1 { font-size: 1.8rem; }
+    .hero { font-size: 2.2rem; }
+    .flow { flex-direction: column; }
+    .flow .arrow { transform: rotate(90deg); }
+    .cards { grid-template-columns: 1fr; }
+  }
+  @media print {
+    body { overflow: visible; background: #fff; }
+    .deck { display: block; height: auto; padding: 0; }
+    .slide { display: block; width: 100%; max-height: none; border: none; border-radius: 0; box-shadow: none; page-break-after: always; }
+    .chrome { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: none; }
+    .chrome .bar i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <section class="slide active center">
+    <p class="kicker">Meta Global AI Developer Hackathon 2026</p>
+    <h1 class="hero">EV-Failed-Session <span class="grad">Resolver</span></h1>
+    <p class="lead">A driver pays, the charger faults, and nobody can say why.</p>
+    <p class="lead">Failed charging sessions, diagnosed with receipts.</p>
+    <img class="hero-img" src="assets/ev-charging.jpg" alt="Electric vehicle charging at a fast-charging station at night">
+    <div class="foot"><span>Pitch deck - 5 minutes</span><span>All data in this demo is synthetic.</span></div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker"><span class="n">1</span>How it works</p>
+    <div class="rule">The model explains. Code computes money.</div>
+    <div class="flow">
+      <div class="node code"><span class="pill">input</span><b>Complaint + log + payment</b>driver evidence in</div>
+      <div class="arrow">→</div>
+      <div class="node code"><span class="pill">code</span><b>calc · codes · retrieve · rules</b>numbers + verdicts</div>
+      <div class="arrow">→</div>
+      <div class="node model"><span class="pill">model</span><b>Muse Spark</b>narrative only, no figures</div>
+      <div class="arrow">→</div>
+      <div class="node code"><span class="pill">human</span><b>UI + audit</b>approve or reject</div>
+    </div>
+    <img class="banner-img" src="assets/ev-connector.jpg" alt="Close-up of an EV fast-charging connector with a green indicator ring">
+    <div class="foot"><span>EV-Failed-Session Resolver</span><span>2 / 4</span></div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker"><span class="n">2</span>Trust</p>
+    <h1>Built so a stranger can audit it.</h1>
+    <div class="cards">
+      <div class="card"><b><span class="tick">✓</span>Named escalation</b><span>Every reason listed on screen. Nothing fails silently.</span></div>
+      <div class="card"><b><span class="tick">✓</span>Approval gate</b><span>Drafts carry <code>requires_approval: true</code> until a human signs.</span></div>
+      <div class="card"><b><span class="tick">✓</span>Full audit trail</b><span>Each row keeps prompt, raw output, and validation.</span></div>
+      <div class="card"><b><span class="tick">✓</span>Honest eval</b><span>Model vs code-only baseline on human-written labels.</span></div>
+    </div>
+    <div class="foot"><span>EV-Failed-Session Resolver</span><span>3 / 4</span></div>
+  </section>
+
+  <section class="slide center">
+    <p class="kicker">Close</p>
+    <h1 class="hero">Evidence first, <span class="grad">refund second.</span></h1>
+    <img class="hero-img" src="assets/ev-dawn.jpg" alt="Electric vehicle charging at dawn in a quiet city">
+    <p class="sub">FastAPI + Next.js + Muse Spark · 107 pytest green · MIT licensed · Independent project, not made or endorsed by Meta.</p>
+    <div><a class="repo" href="https://github.com/kiprotichdominic/ev-failed-session-resolver">github.com/kiprotichdominic/ev-failed-session-resolver</a></div>
+    <div class="foot"><span>Thank you</span><span>All data in this demo is synthetic.</span></div>
+  </section>
+
+</div>
+<div class="chrome">
+  <button id="prev" aria-label="Previous slide">‹ Prev</button>
+  <div class="bar"><i id="fill"></i></div>
+  <span id="count"></span>
+  <button id="full" aria-label="Toggle fullscreen">Fullscreen</button>
+  <button id="next" aria-label="Next slide">Next ›</button>
+  <span><kbd>←</kbd> <kbd>→</kbd> navigate · <kbd>F</kbd> fullscreen</span>
+</div>
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const deck = document.querySelector(".deck");
+  const fill = document.getElementById("fill");
+  const count = document.getElementById("count");
+  let i = 0;
+  function show(n, push) {
+    const ni = Math.max(0, Math.min(slides.length - 1, n));
+    if (ni !== i) deck.dataset.dir = ni > i ? "next" : "prev";
+    i = ni;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    fill.style.width = ((i + 1) / slides.length * 100) + "%";
+    count.textContent = (i + 1) + " / " + slides.length;
+    if (push !== false) history.replaceState(null, "", "#s" + (i + 1));
+  }
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
+  document.getElementById("prev").onclick = () => show(i - 1);
+  document.getElementById("next").onclick = () => show(i + 1);
+  document.getElementById("full").onclick = toggleFull;
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key === "f" || e.key === "F") toggleFull();
+  });
+  function fromHash() {
+    const m = /^#s(\d+)$/.exec(location.hash);
+    return m ? parseInt(m[1], 10) - 1 : 0;
+  }
+  window.addEventListener("hashchange", () => show(fromHash(), false));
+  show(fromHash(), false);
+</script>
+</body>
+</html>

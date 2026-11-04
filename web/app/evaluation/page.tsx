@@ -19,7 +19,7 @@ type Payload = {
 
 function MetricsTable({ title, payload }: { title: string; payload: Payload }) {
   return (
-    <div>
+    <div className="rounded-[10px] border border-line bg-surface p-4 shadow-card">
       <h3 className="font-semibold">{title}</h3>
       <div className="overflow-x-auto">
       <table className="mt-1 w-full border-collapse text-sm tabular-nums">
@@ -33,7 +33,7 @@ function MetricsTable({ title, payload }: { title: string; payload: Payload }) {
         </thead>
         <tbody>
           {Object.entries(payload.metrics).map(([name, spec]) => (
-            <tr key={name}>
+            <tr key={name} className="border-b border-line last:border-b-0">
               <td className="pr-2">{name}</td>
               <td className="pr-2">{JSON.stringify(spec.values)}</td>
               <td className="pr-2">{JSON.stringify(spec.min)}</td>
@@ -91,27 +91,32 @@ function VerdictStrip({
     }
   }
   return (
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded border border-line p-2 text-sm tabular-nums">
-      <span>
-        side_accuracy <span className="font-medium">{fmt(side)}</span>
-      </span>
-      <span>
-        refund_correct <span className="font-medium">{fmt(refund)}</span>
-      </span>
-      <span>
-        high-confidence wrong{" "}
-        <span className="font-medium">
+    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="rounded-[10px] border border-accent/40 bg-accent/10 p-3 shadow-card">
+        <p className="text-sm text-muted">Side accuracy</p>
+        <p className="text-4xl font-bold tabular-nums">{fmt(side)}</p>
+        <p className="text-sm text-muted">mean across runs</p>
+      </div>
+      <div className="rounded-[10px] border border-line bg-surface p-3">
+        <p className="text-sm text-muted">Refund correct</p>
+        <p className="text-3xl font-bold tabular-nums">{fmt(refund)}</p>
+        <p className="text-sm text-muted">mean across runs</p>
+      </div>
+      <div className="rounded-[10px] border border-line bg-surface p-3">
+        <p className="text-sm text-muted">High-confidence wrong</p>
+        <p className="text-3xl font-bold tabular-nums">
           {hcw ? total(hcw.values) : "n/a"}
-        </span>
-      </span>
+        </p>
+        <p className="text-sm text-muted">lower is better</p>
+      </div>
       {baseline && totalPairs > 0 && (
-        <span>
-          beats baseline{" "}
-          <span className="font-medium">
+        <div className="rounded-[10px] border border-line bg-surface p-3">
+          <p className="text-sm text-muted">Beats baseline</p>
+          <p className="text-3xl font-bold tabular-nums">
             {wins}/{totalPairs}
-          </span>{" "}
-          share metrics
-        </span>
+          </p>
+          <p className="text-sm text-muted">share metrics</p>
+        </div>
       )}
     </div>
   );
@@ -140,13 +145,13 @@ function CompareBars({
   const hcw = results.metrics["high_confidence_wrong"];
   const hcwBase = baseline?.metrics["high_confidence_wrong"];
   return (
-    <div className="mt-3">
+    <div className="mt-3 rounded-[10px] border border-line bg-surface p-4 shadow-card">
       <h3 className="font-semibold">Model vs baseline (mean across runs)</h3>
       <p className="mt-1 flex gap-4 text-sm">
         <span>
           <span
             aria-hidden="true"
-            className="mr-1 inline-block h-2 w-4 rounded bg-ink"
+            className="mr-1 inline-block h-2 w-4 rounded bg-accent"
           />
           Model
         </span>
@@ -190,7 +195,7 @@ function CompareBars({
               </span>
             </div>
             <div className="mt-1">
-              <Bar value={a} className="bg-ink" />
+              <Bar value={a} className="bg-accent" />
             </div>
             {baseline && (
               <div className="mt-1">
@@ -255,7 +260,7 @@ export default function EvaluationPage() {
   }, []);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-6">
+    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">Evaluation</h1>
       <p className="mt-1 text-sm text-muted">
         Model vs code-only baseline on the human-written dev/held-out labels.
@@ -268,14 +273,14 @@ export default function EvaluationPage() {
       {!error && missing && (
         <div className="mt-2">
           <p>No results yet. To generate them:</p>
-          <pre className="mt-1 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
+          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
 {`# 1. add cases + eval/labels.json (human-written)
 python eval/run_eval.py --split dev --runs 3 --client fake
 python eval/baseline.py --split dev --runs 3
 # 2. press Check again below`}
           </pre>
           <button
-            className="mt-2 border border-line-strong px-2 py-0.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
+            className="mt-2 rounded-md border border-line-strong px-2.5 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
             onClick={load}
           >
             Check again
@@ -302,9 +307,9 @@ python eval/baseline.py --split dev --runs 3
             {results.failures.map((f, i) => (
               <li key={i}>
                 {f.case_id} / {f.field}: expected{" "}
-                <code className="font-mono">{JSON.stringify(f.expected)}</code>
+                <code className="break-all font-mono">{JSON.stringify(f.expected)}</code>
                 , got{" "}
-                <code className="font-mono">{JSON.stringify(f.got)}</code>
+                <code className="break-all font-mono">{JSON.stringify(f.got)}</code>
               </li>
             ))}
           </ul>

@@ -24,7 +24,7 @@ export default function CopyButton({
 
   return (
     <button
-      className="border border-line-strong bg-canvas px-2 py-0.5 text-sm transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 active:scale-95"
+      className="rounded-md border border-line-strong bg-canvas px-2.5 py-1 text-sm transition-colors hover:border-accent hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-1"
       onClick={copy}
     >
       {state === "copied"

@@ -59,7 +59,7 @@ export default function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Color theme"
-      className="flex rounded border border-line-strong"
+      className="flex rounded-md border border-line-strong"
     >
       {OPTIONS.map((o) => {
         const Icon = o.icon;
@@ -75,7 +75,7 @@ export default function ThemeToggle() {
             onClick={() => pick(o.id)}
             className={`p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 ${
               selected
-                ? "rounded bg-ink text-canvas"
+                ? "rounded bg-accent text-accent-ink"
                 : "text-muted hover:text-ink"
             }`}
           >

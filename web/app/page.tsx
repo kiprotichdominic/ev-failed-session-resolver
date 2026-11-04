@@ -200,7 +200,8 @@ function LogTable({
   cited: Set<number>;
 }) {
   return (
-    <table className="mt-1 w-full border-collapse font-mono text-sm tabular-nums">
+    <div className="overflow-x-auto">
+    <table className="mt-1 w-full min-w-[540px] border-collapse font-mono text-sm tabular-nums">
       <thead>
         <tr className="border-b border-line text-left">
           <th className="pr-2">#</th>
@@ -218,7 +219,9 @@ function LogTable({
               key={i}
               id={`log-${i}`}
               className={
-                isCited ? "bg-mark" : "hover:bg-surface"
+                isCited
+                  ? "border-b border-line bg-mark last:border-b-0"
+                  : "border-b border-line last:border-b-0 hover:bg-surface"
               }
             >
               <td className="whitespace-nowrap pr-2">
@@ -245,13 +248,14 @@ function LogTable({
         })}
       </tbody>
     </table>
+    </div>
   );
 }
 
 const field =
-  "border border-line-strong bg-canvas p-1 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 active:scale-95";
+  "rounded-md border border-line-strong bg-canvas p-1 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-1";
 const primary =
-  "border border-ink bg-ink px-3 py-1 text-canvas transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 active:scale-95 disabled:opacity-50";
+  "rounded-md border border-accent bg-accent px-3 py-1 font-medium text-accent-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-50";
 const muted = "text-muted";
 
 const STAGES = [
@@ -298,6 +302,8 @@ export default function CasesPage() {
   const [genComplaint, setGenComplaint] = useState(GEN_COMPLAINTS.fault.en);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [resolvedCount, setResolvedCount] = useState(0);
+  const [sessionTokens, setSessionTokens] = useState(0);
 
   useEffect(() => {
     fetch(`${API}/api/cases`)
@@ -365,7 +371,10 @@ export default function CasesPage() {
       ]);
       if (!raw.ok || !res.ok) throw new Error("resolve failed");
       setDetail(await raw.json());
-      setResult(await res.json());
+      const solved: Result = await res.json();
+      setResult(solved);
+      setResolvedCount((c) => c + 1);
+      if (solved.usage) setSessionTokens((t) => t + solved.usage!.total_tokens);
       setDrawerOpen(true);
     } catch {
       setError("Could not resolve case. Is the API running?");
@@ -441,7 +450,10 @@ export default function CasesPage() {
         complaint: { text: p.complaint.text },
         session_log: p.session_log as CaseFile["session_log"],
       });
-      setResult(await r.json());
+      const solved: Result = await r.json();
+      setResult(solved);
+      setResolvedCount((c) => c + 1);
+      if (solved.usage) setSessionTokens((t) => t + solved.usage!.total_tokens);
       setDrawerOpen(true);
     } catch {
       setError("Could not analyse pasted case. Is the API running?");
@@ -586,7 +598,8 @@ export default function CasesPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-6">
+    <>
+    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">Cases</h1>
       <p className={`mt-1 text-sm ${muted}`}>
         Pick a case and resolve it: the model explains, code computes every
@@ -596,6 +609,22 @@ export default function CasesPage() {
         Pick a case below, press Resolve, then review the diagnosis and record
         a decision.
       </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-[10px] border border-accent/40 bg-accent/10 p-3 shadow-card">
+          <p className="text-sm text-muted">Cases on file</p>
+          <p className="text-4xl font-bold tabular-nums">{cases.length}</p>
+        </div>
+        <div className="rounded-[10px] border border-line bg-surface p-3">
+          <p className="text-sm text-muted">Resolved this session</p>
+          <p className="text-3xl font-bold tabular-nums">{resolvedCount}</p>
+        </div>
+        <div className="rounded-[10px] border border-line bg-surface p-3">
+          <p className="text-sm text-muted">Tokens this session</p>
+          <p className="text-3xl font-bold tabular-nums">
+            {sessionTokens.toLocaleString()}
+          </p>
+        </div>
+      </div>
       {error && (
         <p role="alert" className="mt-2 text-bad-ink">
           {error}
@@ -608,7 +637,7 @@ export default function CasesPage() {
         </p>
       )}
       {cases.length > 0 && (
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <label htmlFor="case-select" className="text-sm font-medium">
             Case
           </label>
@@ -634,430 +663,421 @@ export default function CasesPage() {
           </button>
         </div>
       )}
-      <div
-        id="tools"
-        className="mt-3 flex flex-wrap gap-2"
-        role="tablist"
-        aria-label="Case tools"
-        onKeyDown={onTabKeyDown}
-      >
-        {TABS.map((t, i) => (
-          <button
-            key={t.id}
-            ref={(el) => {
-              tabRefs.current[i] = el;
-            }}
-            role="tab"
-            id={`tab-${t.id}`}
-            aria-selected={activeTab === t.id}
-            aria-controls="tool-panel"
-            tabIndex={activeTab === t.id ? 0 : -1}
-            onClick={() => setActiveTab(t.id)}
-            className={
-              activeTab === t.id
-                ? "border border-ink bg-ink px-2 py-0.5 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-1"
-                : "border border-line-strong px-2 py-0.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1"
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {activeTab === "analyse" && (
-      <div
-        id="tool-panel"
-        role="tabpanel"
-        aria-labelledby="tab-analyse"
-        className="mt-2"
-      >
-        <label
-          htmlFor="paste-case"
-          className="mt-2 block text-sm font-medium"
+      <div className="mt-3 grid items-start gap-6 xl:grid-cols-5">
+        <div className="min-w-0 xl:col-span-3">
+        <div
+          id="tools"
+          className="flex flex-wrap gap-2"
+          role="tablist"
+          aria-label="Case tools"
+          onKeyDown={onTabKeyDown}
         >
-          Case JSON
-        </label>
-        <textarea
-          id="paste-case"
-          className="mt-1 w-full border border-line-strong bg-canvas p-1 font-mono text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
-          rows={8}
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          placeholder="Paste case JSON here: same shape as eval/cases/C-014.json."
-          spellCheck={false}
-        />
-        <div className="mt-2">
-          <button
-            className={primary}
-            onClick={analysePasted}
-            disabled={busy || pasted.trim() === ""}
-          >
-            {busy ? "Analysing…" : "Analyse"}
-          </button>
-        </div>
-      </div>
-      )}
-      {activeTab === "samples" && (
-      <div
-        id="tool-panel"
-        role="tabpanel"
-        aria-labelledby="tab-samples"
-        className="mt-2"
-      >
-        <div className="mt-2 flex gap-2">
-          {["C-014", "C-021", "C-032"].map((id) => (
+          {TABS.map((t, i) => (
             <button
-              key={id}
-              onClick={() => setSample(id)}
-              aria-pressed={sample === id}
-              className={sample === id ? primary : `${field} px-3`}
+              key={t.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={activeTab === t.id}
+              aria-controls="tool-panel"
+              tabIndex={activeTab === t.id ? 0 : -1}
+              onClick={() => setActiveTab(t.id)}
+              className={
+                activeTab === t.id
+                  ? "rounded-md border border-accent bg-accent/10 px-2.5 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-1"
+                  : "rounded-md border border-line-strong px-2.5 py-1 text-sm text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1"
+              }
             >
-              {id}
+              {t.label}
             </button>
           ))}
         </div>
-        <div className="mt-2">
-          <button
-            className={`${field} px-3`}
-            onClick={() => {
-              setPasted(SAMPLE_CASES[sample].json);
-              setActiveTab("analyse");
-              focusTab("analyse");
-              scrollToId("tools");
-            }}
+        {activeTab === "analyse" && (
+        <div
+          id="tool-panel"
+          role="tabpanel"
+          aria-labelledby="tab-analyse"
+          className="mt-2"
+        >
+          <label
+            htmlFor="paste-case"
+            className="mt-2 block text-sm font-medium"
           >
-            Use {sample} in analyser
-          </button>
-        </div>
-        <p className="mt-2 text-sm">
-          Save as <code className="font-mono">eval/cases/{sample}.json</code>,
-          add its label row to{" "}
-          <code className="font-mono">eval/labels.json</code>, then refresh.
-        </p>
-        <div className="mt-2">
-          <CopyButton
-            text={SAMPLE_CASES[sample].json}
-            label="Copy case JSON"
-          />
-        </div>
-        <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
-          {SAMPLE_CASES[sample].json}
-        </pre>
-        <div className="mt-2">
-          <CopyButton
-            text={SAMPLE_CASES[sample].label}
-            label="Copy label row"
-          />
-        </div>
-        <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
-          {SAMPLE_CASES[sample].label}
-        </pre>
-      </div>
-      )}
-      {activeTab === "build" && (
-      <div
-        id="tool-panel"
-        role="tabpanel"
-        aria-labelledby="tab-build"
-        className="mt-2"
-      >
-        <div className="mt-2 grid max-w-2xl gap-3 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="gen-scenario"
-              className="block text-sm font-medium"
-            >
-              Scenario
-            </label>
-            <select
-              id="gen-scenario"
-              className={`${field} mt-1 w-full`}
-              value={genScenario}
-              onChange={(e) => {
-                const v = e.target.value as "fault" | "never";
-                setGenScenario(v);
-                setGenComplaint(GEN_COMPLAINTS[v][genLang]);
-              }}
-            >
-              <option value="fault">Failed session (fault)</option>
-              <option value="never">Never started (no session)</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="gen-fault" className="block text-sm font-medium">
-              Fault code
-            </label>
-            <select
-              id="gen-fault"
-              className={`${field} mt-1 w-full disabled:opacity-50`}
-              value={genFault}
-              onChange={(e) => setGenFault(e.target.value)}
-              disabled={genScenario === "never"}
-            >
-              {Object.keys(FAULT_SIDE).map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="gen-energy" className="block text-sm font-medium">
-              Energy delivered: {genEnergy} kWh → {genOwed} KES owed
-            </label>
-            <input
-              id="gen-energy"
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={genEnergy}
-              onChange={(e) => setGenEnergy(Number(e.target.value))}
-              disabled={genScenario === "never"}
-              className="mt-2 w-full accent-ink disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label htmlFor="gen-paid" className="block text-sm font-medium">
-              Paid (KES)
-            </label>
-            <input
-              id="gen-paid"
-              type="number"
-              min={0}
-              step={50}
-              value={genPaid}
-              onChange={(e) =>
-                setGenPaid(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-              }
-              className={`${field} mt-1 w-full`}
-            />
-          </div>
-          <div>
-            <label htmlFor="gen-status" className="block text-sm font-medium">
-              Payment status
-            </label>
-            <select
-              id="gen-status"
-              className={`${field} mt-1 w-full`}
-              value={genStatus}
-              onChange={(e) =>
-                setGenStatus(e.target.value as "captured" | "pending")
-              }
-            >
-              <option value="captured">captured</option>
-              <option value="pending">pending</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="gen-id" className="block text-sm font-medium">
-              Case ID
-            </label>
-            <input
-              id="gen-id"
-              value={genCaseId}
-              onChange={(e) => setGenCaseId(e.target.value)}
-              className={`${field} mt-1 w-full`}
-            />
-          </div>
-          <div>
-            <label htmlFor="gen-lang" className="block text-sm font-medium">
-              Complaint language
-            </label>
-            <select
-              id="gen-lang"
-              className={`${field} mt-1 w-full`}
-              value={genLang}
-              onChange={(e) => {
-                const v = e.target.value as GenLang;
-                setGenLang(v);
-                setGenComplaint(GEN_COMPLAINTS[genScenario][v]);
-              }}
-            >
-              {GEN_LANGS.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="mt-3 flex max-w-2xl flex-wrap items-center gap-2">
-          <label htmlFor="gen-complaint" className="text-sm font-medium">
-            Complaint (sets reply language)
+            Case JSON
           </label>
-          <button
-            className={`${field} px-3`}
-            onClick={generateComplaint}
-            disabled={generating}
-          >
-            {generating ? "Generating…" : "Generate with AI"}
-          </button>
-        </div>
-        {genError && (
-          <p role="alert" className="mt-1 text-sm text-bad-ink">
-            {genError}
-          </p>
-        )}
-        <textarea
-          id="gen-complaint"
-          rows={2}
-          value={genComplaint}
-          onChange={(e) => setGenComplaint(e.target.value)}
-          className="mt-1 w-full max-w-2xl border border-line-strong bg-canvas p-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
-        />
-        <p className={`mt-2 text-sm ${muted}`}>
-          {genEscalate
-            ? `Draft label expects escalation (${genEscalateWhy.join(", ")}).`
-            : "Draft label expects no escalation."}{" "}
-          Tariff fixed at 25 KES/kWh so every figure is exact. Verify after
-          resolving: the live model can always force escalation.
-        </p>
-        {genScenario === "fault" && genFault !== "GroundFailure" && (
-          <p className="mt-1 text-sm text-idle-ink">
-            Only GroundFailure has a corpus entry today; expect escalation
-            until the {genFault} summary is added.
-          </p>
-        )}
-        <p className="mt-1 text-sm">
-          Save as <code className="font-mono">eval/cases/{genId}.json</code>,
-          add its label row to{" "}
-          <code className="font-mono">eval/labels.json</code>, then refresh.
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <CopyButton text={genCaseJson} label="Copy case JSON" />
-          <CopyButton text={genLabelRow} label="Copy label row" />
-          <button
-            className={`${field} px-3`}
-            onClick={() => {
-              setPasted(genCaseJson);
-              setActiveTab("analyse");
-              focusTab("analyse");
-              scrollToId("tools");
-            }}
-          >
-            Use in analyser
-          </button>
-        </div>
-        <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
-          {genCaseJson}
-        </pre>
-        <pre className="mt-2 overflow-x-auto border border-line bg-surface p-2 font-mono text-xs">
-          {genLabelRow}
-        </pre>
-      </div>
-      )}
-      {busy && showBusy && (
-        <p className="mt-3 flex items-center gap-2 text-sm" role="status">
-          <span
-            aria-hidden="true"
-            className={`inline-block h-2 w-2 rounded-full bg-ink ${reducedMotion() ? "" : "animate-pulse"}`}
+          <textarea
+            id="paste-case"
+            className="mt-1 w-full rounded-md border border-line-strong bg-canvas p-2 font-mono text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+            rows={8}
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+            placeholder="Paste case JSON here: same shape as eval/cases/C-014.json."
+            spellCheck={false}
           />
-          {STAGES[Math.floor(elapsed / 2) % STAGES.length]}…
-          <span aria-hidden="true" className={`tabular-nums ${muted}`}>
-            {elapsed}s
-          </span>
-        </p>
-      )}
-
-      {result && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded border border-line p-2 text-sm">
-          <span className="rounded-full border border-line-strong px-2 py-0.5 font-medium">
-            {result.side ?? "no model output"}
-          </span>
-          {result.confidence !== null && (
-            <span className={`${muted} tabular-nums`}>
-              {Math.round(confidence * 100)}%
-            </span>
-          )}
-          {result.escalate ? (
-            <span className="rounded-full border border-bad/30 bg-bad-tint px-2 py-0.5 font-medium">
-              <StatusDot tone="bad" />
-              Needs human review
-            </span>
-          ) : (
-            <span className="rounded-full border border-ok/30 bg-ok-tint px-2 py-0.5 font-medium">
-              <StatusDot tone="ok" />
-              No escalation
-            </span>
-          )}
-          {result.refund_draft && (
-            <span className="tabular-nums">
-              Refund draft: {result.refund_draft.amount_kes} KES
-            </span>
-          )}
-          {result.usage ? (
-            <span
-              className="tabular-nums text-muted"
-              title="prompt tokens in · completion tokens out"
+          <div className="mt-2">
+            <button
+              className={primary}
+              onClick={analysePasted}
+              disabled={busy || pasted.trim() === ""}
             >
-              {result.usage.prompt_tokens.toLocaleString()} in ·{" "}
-              {result.usage.completion_tokens.toLocaleString()} out
-            </span>
-          ) : (
-            mode === "fake" && (
-              <span className="text-muted">canned · no tokens spent</span>
-            )
-          )}
-          {!drawerOpen && (
+              {busy ? "Analysing…" : "Analyse"}
+            </button>
+          </div>
+        </div>
+        )}
+        {activeTab === "samples" && (
+        <div
+          id="tool-panel"
+          role="tabpanel"
+          aria-labelledby="tab-samples"
+          className="mt-2"
+        >
+          <div className="mt-2 flex gap-2">
+            {["C-014", "C-021", "C-032"].map((id) => (
+              <button
+                key={id}
+                onClick={() => setSample(id)}
+                aria-pressed={sample === id}
+                className={sample === id ? primary : `${field} px-3`}
+              >
+                {id}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2">
             <button
               className={`${field} px-3`}
-              onClick={() => setDrawerOpen(true)}
+              onClick={() => {
+                setPasted(SAMPLE_CASES[sample].json);
+                setActiveTab("analyse");
+                focusTab("analyse");
+                scrollToId("tools");
+              }}
             >
-              View diagnosis
+              Use {sample} in analyser
             </button>
-          )}
-        </div>
-      )}
-
-      {detail && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">Complaint</h2>
-          <div className="mt-1 rounded border border-line bg-surface p-3">
-            <p>{detail.complaint.text}</p>
           </div>
-          <h2 className="mt-4 text-lg font-semibold">Session log</h2>
-          <p className={`text-sm ${muted}`}>
-            Highlighted rows are cited as evidence. Click an evidence ref below
-            to jump to its row.
+          <p className="mt-2 text-sm">
+            Save as <code className="font-mono">eval/cases/{sample}.json</code>,
+            add its label row to{" "}
+            <code className="font-mono">eval/labels.json</code>, then refresh.
           </p>
-          {cited.size === 0 || otherIdx.length === 0 ? (
-            <LogTable
-              entries={detail.session_log}
-              indexes={[...Array(logLength).keys()]}
-              cited={cited}
+          <p className="mt-2 text-sm text-muted">
+            The case JSON and label row previews appear full-width below.
+          </p>
+        </div>
+        )}
+        {activeTab === "build" && (
+        <div
+          id="tool-panel"
+          role="tabpanel"
+          aria-labelledby="tab-build"
+          className="mt-2"
+        >
+          <div className="mt-2 grid max-w-2xl gap-3 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="gen-scenario"
+                className="block text-sm font-medium"
+              >
+                Scenario
+              </label>
+              <select
+                id="gen-scenario"
+                className={`${field} mt-1 w-full`}
+                value={genScenario}
+                onChange={(e) => {
+                  const v = e.target.value as "fault" | "never";
+                  setGenScenario(v);
+                  setGenComplaint(GEN_COMPLAINTS[v][genLang]);
+                }}
+              >
+                <option value="fault">Failed session (fault)</option>
+                <option value="never">Never started (no session)</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="gen-fault" className="block text-sm font-medium">
+                Fault code
+              </label>
+              <select
+                id="gen-fault"
+                className={`${field} mt-1 w-full disabled:opacity-50`}
+                value={genFault}
+                onChange={(e) => setGenFault(e.target.value)}
+                disabled={genScenario === "never"}
+              >
+                {Object.keys(FAULT_SIDE).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="gen-energy" className="block text-sm font-medium">
+                Energy delivered: {genEnergy} kWh → {genOwed} KES owed
+              </label>
+              <input
+                id="gen-energy"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={genEnergy}
+                onChange={(e) => setGenEnergy(Number(e.target.value))}
+                disabled={genScenario === "never"}
+                className="mt-2 w-full accent-accent disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label htmlFor="gen-paid" className="block text-sm font-medium">
+                Paid (KES)
+              </label>
+              <input
+                id="gen-paid"
+                type="number"
+                min={0}
+                step={50}
+                value={genPaid}
+                onChange={(e) =>
+                  setGenPaid(Math.max(0, Math.floor(Number(e.target.value) || 0)))
+                }
+                className={`${field} mt-1 w-full`}
+              />
+            </div>
+            <div>
+              <label htmlFor="gen-status" className="block text-sm font-medium">
+                Payment status
+              </label>
+              <select
+                id="gen-status"
+                className={`${field} mt-1 w-full`}
+                value={genStatus}
+                onChange={(e) =>
+                  setGenStatus(e.target.value as "captured" | "pending")
+                }
+              >
+                <option value="captured">captured</option>
+                <option value="pending">pending</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="gen-id" className="block text-sm font-medium">
+                Case ID
+              </label>
+              <input
+                id="gen-id"
+                value={genCaseId}
+                onChange={(e) => setGenCaseId(e.target.value)}
+                className={`${field} mt-1 w-full`}
+              />
+            </div>
+            <div>
+              <label htmlFor="gen-lang" className="block text-sm font-medium">
+                Complaint language
+              </label>
+              <select
+                id="gen-lang"
+                className={`${field} mt-1 w-full`}
+                value={genLang}
+                onChange={(e) => {
+                  const v = e.target.value as GenLang;
+                  setGenLang(v);
+                  setGenComplaint(GEN_COMPLAINTS[genScenario][v]);
+                }}
+              >
+                {GEN_LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-3 flex max-w-2xl flex-wrap items-center gap-2">
+            <label htmlFor="gen-complaint" className="text-sm font-medium">
+              Complaint (sets reply language)
+            </label>
+            <button
+              className={`${field} px-3`}
+              onClick={generateComplaint}
+              disabled={generating}
+            >
+              {generating ? "Generating…" : "Generate with AI"}
+            </button>
+          </div>
+          {genError && (
+            <p role="alert" className="mt-1 text-sm text-bad-ink">
+              {genError}
+            </p>
+          )}
+          <textarea
+            id="gen-complaint"
+            rows={2}
+            value={genComplaint}
+            onChange={(e) => setGenComplaint(e.target.value)}
+            className="mt-1 w-full max-w-2xl rounded-md border border-line-strong bg-canvas p-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+          />
+          <p className={`mt-2 text-sm ${muted}`}>
+            {genEscalate
+              ? `Draft label expects escalation (${genEscalateWhy.join(", ")}).`
+              : "Draft label expects no escalation."}{" "}
+            Tariff fixed at 25 KES/kWh so every figure is exact. Verify after
+            resolving: the live model can always force escalation.
+          </p>
+          {genScenario === "fault" && genFault !== "GroundFailure" && (
+            <p className="mt-1 text-sm text-idle-ink">
+              Only GroundFailure has a corpus entry today; expect escalation
+              until the {genFault} summary is added.
+            </p>
+          )}
+          <p className="mt-1 text-sm">
+            Save as <code className="font-mono">eval/cases/{genId}.json</code>,
+            add its label row to{" "}
+            <code className="font-mono">eval/labels.json</code>, then refresh.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              className={`${field} px-3`}
+              onClick={() => {
+                setPasted(genCaseJson);
+                setActiveTab("analyse");
+                focusTab("analyse");
+                scrollToId("tools");
+              }}
+            >
+              Use in analyser
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-muted">
+            The case JSON and label row previews appear full-width below.
+          </p>
+        </div>
+        )}
+        {busy && showBusy && (
+          <p className="mt-3 flex items-center gap-2 text-sm" role="status">
+            <span
+              aria-hidden="true"
+              className={`inline-block h-2 w-2 rounded-full bg-accent ${reducedMotion() ? "" : "animate-pulse"}`}
             />
-          ) : (
-            <>
+            {STAGES[Math.floor(elapsed / 2) % STAGES.length]}…
+            <span aria-hidden="true" className={`tabular-nums ${muted}`}>
+              {elapsed}s
+            </span>
+          </p>
+        )}
+        </div>
+        <div className="min-w-0 xl:col-span-2">
+        {result && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[10px] border border-line bg-surface p-3 text-sm shadow-card">
+            <span className="rounded-full border border-line-strong px-2 py-0.5 font-medium">
+              {result.side ?? "no model output"}
+            </span>
+            {result.confidence !== null && (
+              <span className={`${muted} tabular-nums`}>
+                {Math.round(confidence * 100)}%
+              </span>
+            )}
+            {result.escalate ? (
+              <span className="rounded-full border border-bad/30 bg-bad-tint px-2 py-0.5 font-medium">
+                <StatusDot tone="bad" />
+                Needs human review
+              </span>
+            ) : (
+              <span className="rounded-full border border-ok/30 bg-ok-tint px-2 py-0.5 font-medium">
+                <StatusDot tone="ok" />
+                No escalation
+              </span>
+            )}
+            {result.refund_draft && (
+              <span className="tabular-nums">
+                Refund draft: {result.refund_draft.amount_kes} KES
+              </span>
+            )}
+            {result.usage ? (
+              <span
+                className="tabular-nums text-muted"
+                title="prompt tokens in · completion tokens out"
+              >
+                {result.usage.prompt_tokens.toLocaleString()} in ·{" "}
+                {result.usage.completion_tokens.toLocaleString()} out
+              </span>
+            ) : (
+              mode === "fake" && (
+                <span className="text-muted">canned · no tokens spent</span>
+              )
+            )}
+            {!drawerOpen && (
+              <button
+                className={`${field} px-3`}
+                onClick={() => setDrawerOpen(true)}
+              >
+                View diagnosis
+              </button>
+            )}
+          </div>
+        )}
+
+        {detail && (
+          <section className="mt-4">
+            <h2 className="text-lg font-semibold">Complaint</h2>
+            <div className="mt-1 rounded-[10px] border border-line bg-surface p-3">
+              <p>{detail.complaint.text}</p>
+            </div>
+            <h2 className="mt-4 text-lg font-semibold">Session log</h2>
+            <p className={`text-sm ${muted}`}>
+              Highlighted rows are cited as evidence. Click an evidence ref below
+              to jump to its row.
+            </p>
+            {cited.size === 0 || otherIdx.length === 0 ? (
               <LogTable
                 entries={detail.session_log}
-                indexes={citedIdx}
+                indexes={[...Array(logLength).keys()]}
                 cited={cited}
               />
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm hover:underline">
-                  Show all {logLength} rows ({cited.size} cited)
-                </summary>
+            ) : (
+              <>
                 <LogTable
                   entries={detail.session_log}
-                  indexes={otherIdx}
+                  indexes={citedIdx}
                   cited={cited}
                 />
-              </details>
-            </>
-          )}
-        </section>
-      )}
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm hover:underline">
+                    Show all {logLength} rows ({cited.size} cited)
+                  </summary>
+                  <LogTable
+                    entries={detail.session_log}
+                    indexes={otherIdx}
+                    cited={cited}
+                  />
+                </details>
+              </>
+            )}
+          </section>
+        )}
+        {!detail && !result && (
+          <div className="rounded-[10px] border border-dashed border-line-strong p-4 text-sm text-muted">
+            Resolve a case or analyse pasted JSON to see the complaint, session
+            log, and diagnosis here.
+          </div>
+        )}
+        </div>
+      </div>
       <div
         aria-hidden="true"
         onClick={() => setDrawerOpen(false)}
-        className={`fixed inset-0 bg-ink/50 transition-opacity ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed inset-0 bg-black/60 transition-opacity ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Diagnosis"
         inert={!drawerOpen}
-        className={`fixed inset-y-0 right-0 w-full max-w-xl overflow-y-auto border-l border-line bg-canvas p-6 transition-transform ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 w-full max-w-xl overflow-y-auto rounded-l-[14px] border-l border-line bg-canvas p-4 shadow-drawer transition-transform sm:p-6 ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex justify-end">
           <button
@@ -1089,7 +1109,7 @@ export default function CasesPage() {
                 aria-label={`confidence ${result.confidence}`}
               >
                 <div
-                  className="h-2 rounded bg-ink"
+                  className="h-2 rounded bg-accent"
                   style={{ width: `${confidence * 100}%` }}
                 />
               </div>
@@ -1169,7 +1189,8 @@ export default function CasesPage() {
               No calculation - the log has no usable meter data.
             </p>
           ) : (
-            <dl className="mt-1 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
+            <div className="mt-1 max-w-md rounded-[10px] border border-line bg-surface px-3 py-2">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-sm tabular-nums">
               <dt className={muted}>Energy delivered</dt>
               <dd>{String(result.calc.energy_kwh)} kWh</dd>
               <dt className={muted}>Amount owed</dt>
@@ -1185,9 +1206,10 @@ export default function CasesPage() {
               <dt className={muted}>Still open</dt>
               <dd>{String(result.still_open)}</dd>
             </dl>
+            </div>
           )}
           {result.usage && (
-            <div className="mt-3 rounded border border-line bg-surface p-3">
+            <div className="mt-3 rounded-[10px] border border-line bg-surface p-3">
               <p className={`text-sm font-medium ${muted}`}>Token usage</p>
               <dl className="mt-1 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
                 <dt className={muted}>Prompt in</dt>
@@ -1215,7 +1237,7 @@ export default function CasesPage() {
           )}
 
           {result.driver_message && (
-            <div className="mt-3 rounded border border-line bg-surface p-3">
+            <div className="mt-3 rounded-[10px] border border-line bg-surface p-3">
               <p className={`text-sm font-medium ${muted}`}>
                 Driver message ({result.driver_message.language})
               </p>
@@ -1228,7 +1250,7 @@ export default function CasesPage() {
           )}
 
           {result.escalate ? (
-            <div className="mt-3 rounded border border-bad/30 bg-bad-tint p-2">
+            <div className="mt-3 rounded-[10px] border border-bad/30 bg-bad-tint p-3">
               <p className="font-semibold">Needs human review</p>
               <ul className="list-disc pl-5">
                 {result.escalate_reasons.map((r) => (
@@ -1245,13 +1267,13 @@ export default function CasesPage() {
             </div>
           ) : (
             result.refund_draft && (
-              <div className="mt-3 rounded border border-line bg-surface p-3">
+              <div className="mt-3 rounded-[10px] border border-line bg-surface p-3 shadow-card">
                 <p>
                   Refund draft: {result.refund_draft.amount_kes} KES
                   (requires approval)
                 </p>
                 {decision ? (
-                  <div className="mt-1 rounded border border-ok/30 bg-ok-tint p-2">
+                  <div className="mt-1 rounded-md border border-ok/30 bg-ok-tint p-2">
                     <p>Recorded decision: {decision}</p>
                     <button
                       className="mt-1 text-sm underline focus-visible:outline-2 focus-visible:outline-offset-1"
@@ -1321,5 +1343,58 @@ export default function CasesPage() {
       )}
       </aside>
     </main>
+    <div className="w-full">
+      {activeTab === "samples" && (
+        <section aria-label="Sample case output" className="code-breakout mt-4 grid w-full gap-4">
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">Case JSON</span>
+              <CopyButton
+                text={SAMPLE_CASES[sample].json}
+                label="Copy case JSON"
+              />
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
+              {SAMPLE_CASES[sample].json}
+            </pre>
+          </div>
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">Label row</span>
+              <CopyButton
+                text={SAMPLE_CASES[sample].label}
+                label="Copy label row"
+              />
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
+              {SAMPLE_CASES[sample].label}
+            </pre>
+          </div>
+        </section>
+      )}
+      {activeTab === "build" && (
+        <section aria-label="Generated case output" className="code-breakout mt-4 grid w-full gap-4">
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">Case JSON</span>
+              <CopyButton text={genCaseJson} label="Copy case JSON" />
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
+              {genCaseJson}
+            </pre>
+          </div>
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">Label row</span>
+              <CopyButton text={genLabelRow} label="Copy label row" />
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-3 font-mono text-xs">
+              {genLabelRow}
+            </pre>
+          </div>
+        </section>
+      )}
+    </div>
+    </>
   );
 }
